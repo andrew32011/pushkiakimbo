@@ -475,21 +475,37 @@ public static class RunnerSceneBuilder
         var menu = menuPanel.AddComponent<MainMenuUI>();
         SetRef(menu, "_root", menuPanel);
 
-        // Верх: заголовок, валюты, уровень
-        Label(menuPanel.transform, "CROWD RUNNER", new Vector2(0, 820), new Vector2(1000, 110), 64, TextAnchor.MiddleCenter, new Vector2(0.5f, 0.5f));
-        var coinsMenu = Counter(menuPanel.transform, IconCoin, new Vector2(0.5f, 0.5f), new Vector2(-170, 700), "0");
-        var gemMenu = Counter(menuPanel.transform, IconGem, new Vector2(0.5f, 0.5f), new Vector2(120, 700), "0");
-        var levelMenu = Label(menuPanel.transform, "Уровень 1", new Vector2(0, 610), new Vector2(700, 70), 40, TextAnchor.MiddleCenter, new Vector2(0.5f, 0.5f));
+        // Верх-центр: заголовок, валюты, уровень (привязаны к верхнему краю — адаптивно)
+        var titleLbl = Label(menuPanel.transform, "CROWD RUNNER", Vector2.zero, new Vector2(900, 100), 56, TextAnchor.MiddleCenter, new Vector2(0.5f, 1f));
+        AnchorRT(titleLbl.transform, new Vector2(0.5f, 1f), new Vector2(0, -30));
+        var coinsMenu = Counter(menuPanel.transform, IconCoin, new Vector2(0.5f, 0.5f), Vector2.zero, "0");
+        AnchorRT(coinsMenu.transform.parent, new Vector2(0.5f, 1f), new Vector2(-180, -140));
+        var gemMenu = Counter(menuPanel.transform, IconGem, new Vector2(0.5f, 0.5f), Vector2.zero, "0");
+        AnchorRT(gemMenu.transform.parent, new Vector2(0.5f, 1f), new Vector2(120, -140));
+        var levelMenu = Label(menuPanel.transform, "Уровень 1", Vector2.zero, new Vector2(700, 60), 36, TextAnchor.MiddleCenter, new Vector2(0.5f, 1f));
+        AnchorRT(levelMenu.transform, new Vector2(0.5f, 1f), new Vector2(0, -230));
 
-        // Квадратные боковые кнопки
-        var upgBtn = SquareButton(menuPanel.transform, "Апгрейды", "GREEN", IconCrown, new Vector2(-430, 250), 190);
-        var shopBtn = SquareButton(menuPanel.transform, "Магазин", "BLUE", IconCart, new Vector2(-430, 0), 190);
-        var casesBtn = SquareButton(menuPanel.transform, "Кейсы", "YELLOW", IconGem, new Vector2(-430, -250), 190);
-        var lvlBtn = SquareButton(menuPanel.transform, "Уровни", "BLUE", IconHome, new Vector2(430, 250), 190);
-        var setBtn = SquareButton(menuPanel.transform, "Настройки", "GREY", IconGear, new Vector2(430, 0), 190);
+        // Левая колонка квадратных кнопок — у левого края (адаптивно)
+        var upgBtn = SquareButton(menuPanel.transform, "Апгрейды", "GREEN", IconCrown, Vector2.zero, 190);
+        AnchorRT(upgBtn.transform, new Vector2(0f, 0.5f), new Vector2(120, 230));
+        var shopBtn = SquareButton(menuPanel.transform, "Магазин", "BLUE", IconCart, Vector2.zero, 190);
+        AnchorRT(shopBtn.transform, new Vector2(0f, 0.5f), new Vector2(120, 0));
+        var casesBtn = SquareButton(menuPanel.transform, "Кейсы", "YELLOW", IconGem, Vector2.zero, 190);
+        AnchorRT(casesBtn.transform, new Vector2(0f, 0.5f), new Vector2(120, -230));
 
-        // Большая кнопка «ЗАБЕГ» снизу
-        var playBtn = IconButton(menuPanel.transform, "ЗАБЕГ", "GREEN", IconPlay, new Vector2(0, -780), new Vector2(620, 180), 56);
+        // Правая колонка — у правого края (адаптивно)
+        var lvlBtn = SquareButton(menuPanel.transform, "Уровни", "BLUE", IconHome, Vector2.zero, 190);
+        AnchorRT(lvlBtn.transform, new Vector2(1f, 0.5f), new Vector2(-120, 230));
+        var setBtn = SquareButton(menuPanel.transform, "Настройки", "GREY", IconGear, Vector2.zero, 190);
+        AnchorRT(setBtn.transform, new Vector2(1f, 0.5f), new Vector2(-120, 0));
+
+        // «ЗАБЕГ» — низ-центр (адаптивно к нижнему краю)
+        var playBtn = IconButton(menuPanel.transform, "ЗАБЕГ", "GREEN", IconPlay, Vector2.zero, new Vector2(620, 170), 54);
+        AnchorRT(playBtn.transform, new Vector2(0.5f, 0f), new Vector2(0, 80));
+
+        // ВРЕМЕННО: сброс прогресса — низ-лево
+        var resetBtn = IconButton(menuPanel.transform, "СБРОС", "RED", null, Vector2.zero, new Vector2(230, 90), 28);
+        AnchorRT(resetBtn.transform, new Vector2(0f, 0f), new Vector2(135, 80));
 
         SetRef(menu, "_coinsText", coinsMenu);
         SetRef(menu, "_crystalsText", gemMenu);
@@ -497,6 +513,7 @@ public static class RunnerSceneBuilder
         Wire(playBtn, menu.OnPlay);
         Wire(upgBtn, menu.OnUpgrades); Wire(shopBtn, menu.OnShop); Wire(casesBtn, menu.OnCases);
         Wire(lvlBtn, menu.OnLevelSelect); Wire(setBtn, menu.OnSettings);
+        Wire(resetBtn, menu.OnResetProgress);
         refs.menu = menu;
 
         // ---------- DEFEAT ----------
@@ -637,6 +654,14 @@ public static class RunnerSceneBuilder
         var rt = card.GetComponent<RectTransform>();
         rt.anchorMin = rt.anchorMax = rt.pivot = new Vector2(0.5f, 0.5f);
         rt.sizeDelta = size; rt.anchoredPosition = Vector2.zero;
+    }
+
+    // Привязка элемента к краю экрана (адаптивно к разрешению/аспекту).
+    private static void AnchorRT(Transform t, Vector2 anchor, Vector2 pos)
+    {
+        var rt = (RectTransform)t;
+        rt.anchorMin = rt.anchorMax = rt.pivot = anchor;
+        rt.anchoredPosition = pos;
     }
 
     private static Text Label(Transform parent, string text, Vector2 pos, Vector2 size, int fontSize, TextAnchor anchor, Vector2 pivot)

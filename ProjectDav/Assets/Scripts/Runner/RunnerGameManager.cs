@@ -321,6 +321,14 @@ namespace CrowdRunner
         public void OpenLevelSelect() { _levelSelectUI?.Show(true); PauseForOverlay(true); }
         public void CloseOverlay() => PauseForOverlay(false);
 
+        // ВРЕМЕННО: сброс прогресса для тестирования.
+        public void ResetProgress()
+        {
+            YG2.SetDefaultSaves();
+            YG2.SaveProgress();
+            ShowMenu(); // пере-применит превью-отряд и обновит UI под сброшенные параметры
+        }
+
         // Пауза только во время боя; в меню время и так идёт нормально.
         private void PauseForOverlay(bool paused)
         {

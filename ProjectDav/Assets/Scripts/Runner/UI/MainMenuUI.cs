@@ -24,5 +24,6 @@ namespace CrowdRunner
         public void OnCases() => GM?.OpenCases();
         public void OnLevelSelect() => GM?.OpenLevelSelect();
         public void OnSettings() => GM?.OpenSettings();
+        public void OnResetProgress() => GM?.ResetProgress(); // временно
     }
 }
