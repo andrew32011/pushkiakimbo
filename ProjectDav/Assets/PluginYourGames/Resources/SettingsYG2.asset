@@ -9,11 +9,11 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: efa747916aa66674d96ea40ca8a480b2, type: 3}
+  m_Script: {fileID: 0}
   m_Name: SettingsYG2
-  m_EditorClassIdentifier: 
+  m_EditorClassIdentifier: Assembly-CSharp:YG:InfoYG
   Basic:
-    platform: {fileID: 11400000, guid: fabe82a4ab034324eb452cc7109f6d19, type: 2}
+    platform: {fileID: 0}
     autoApplySettings: 1
     autoPauseGame: 1
     editEventSystem: 1
