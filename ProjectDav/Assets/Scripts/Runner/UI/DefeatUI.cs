@@ -3,13 +3,10 @@ using UnityEngine.UI;
 
 namespace CrowdRunner
 {
-    public class DefeatUI : MonoBehaviour
+    public class DefeatUI : UIPanel
     {
-        [SerializeField] private GameObject _root;
         [SerializeField] private Text _resultText;
         [SerializeField] private GameObject _continueButton;  // активна, пока есть продолжения
-
-        public void Show(bool v) { if (_root != null) _root.SetActive(v); }
 
         public void Set(int coins, int kills, bool canContinue)
         {
@@ -17,8 +14,8 @@ namespace CrowdRunner
             if (_continueButton != null) _continueButton.SetActive(canContinue);
         }
 
-        public void OnContinue() => RunnerGameManager.Instance?.ContinueRun();
-        public void OnRetry() => RunnerGameManager.Instance?.RestartLevel();
-        public void OnMenu() => RunnerGameManager.Instance?.ShowMenu();
+        public void OnContinue() => GM?.ContinueRun();
+        public void OnRetry() => GM?.RestartLevel();
+        public void OnMenu() => GM?.ShowMenu();
     }
 }

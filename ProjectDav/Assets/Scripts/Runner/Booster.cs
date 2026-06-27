@@ -21,28 +21,27 @@ namespace CrowdRunner
         private float _speed = 3.5f;
         private float _stopDist = 5f;   // дистанция головного блока перед игроком
         private float _gap = 2.2f;      // дистанция в очереди
-        private float _vulnDist = 7f;   // ближе этого можно пробить пулями, дальше — нет
         private bool _dead;
 
         public bool IsDead => _dead;
 
-        public void Init(int bonus, float hp, float speed, float stopDist, float gap, float vulnDist)
+        public void Init(int bonus, float hp, float speed, float stopDist, float gap)
         {
             _kind = Kind.Units;
             _bonus = Mathf.Max(1, bonus);
-            Setup(hp, speed, stopDist, gap, vulnDist);
+            Setup(hp, speed, stopDist, gap);
         }
 
-        public void InitWeapon(float hp, float speed, float stopDist, float gap, float vulnDist)
+        public void InitWeapon(float hp, float speed, float stopDist, float gap)
         {
             _kind = Kind.Weapon;
-            Setup(hp, speed, stopDist, gap, vulnDist);
+            Setup(hp, speed, stopDist, gap);
         }
 
-        private void Setup(float hp, float speed, float stopDist, float gap, float vulnDist)
+        private void Setup(float hp, float speed, float stopDist, float gap)
         {
             _maxHp = _hp = Mathf.Max(1f, hp);
-            _speed = speed; _stopDist = stopDist; _gap = gap; _vulnDist = vulnDist; _dead = false;
+            _speed = speed; _stopDist = stopDist; _gap = gap; _dead = false;
             if (_zone != null) _zone.isTrigger = true;
             UpdateLabel();
             TintForKind();

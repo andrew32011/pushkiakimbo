@@ -486,6 +486,7 @@
 "Assets/Scripts/Runner/UI/HudUI.cs"
 "Assets/Scripts/Runner/UI/MainMenuUI.cs"
 "Assets/Scripts/Runner/UI/SettingsUI.cs"
+"Assets/Scripts/Runner/UI/UIPanel.cs"
 "Assets/Scripts/Runner/UI/UpgradeUI.cs"
 "Assets/Scripts/Runner/UI/VictoryUI.cs"
 "Assets/Scripts/Runner/UnitController.cs"

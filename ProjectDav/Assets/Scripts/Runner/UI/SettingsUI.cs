@@ -4,24 +4,22 @@ using YG;
 
 namespace CrowdRunner
 {
-    public class SettingsUI : MonoBehaviour
+    public class SettingsUI : UIPanel
     {
-        [SerializeField] private GameObject _root;
         [SerializeField] private Slider _music;
         [SerializeField] private Slider _sfx;
 
         private void Awake()
         {
-            // Слайдеры подписываем в рантайме (персистентные float-листенеры неудобно
-            // ставить из редактора, поэтому вешаем здесь).
+            // Слайдеры подписываем в рантайме (персистентные float-листенеры из редактора неудобны).
             if (_music != null) _music.onValueChanged.AddListener(_ => OnVolumeChanged());
             if (_sfx != null) _sfx.onValueChanged.AddListener(_ => OnVolumeChanged());
         }
 
-        public void Show(bool v)
+        public override void Show(bool visible)
         {
-            if (_root != null) _root.SetActive(v);
-            if (v)
+            base.Show(visible);
+            if (visible)
             {
                 if (_music != null) _music.SetValueWithoutNotify(YG2.saves.musicVolume);
                 if (_sfx != null) _sfx.SetValueWithoutNotify(YG2.saves.sfxVolume);
@@ -32,7 +30,7 @@ namespace CrowdRunner
         {
             float m = _music != null ? _music.value : 1f;
             float s = _sfx != null ? _sfx.value : 1f;
-            RunnerGameManager.Instance?.SetVolumes(m, s);
+            GM?.SetVolumes(m, s);
         }
 
         public void OnFullscreen()
@@ -42,6 +40,6 @@ namespace CrowdRunner
 #endif
         }
 
-        public void OnClose() { Show(false); }
+        public void OnClose() { Show(false); GM?.CloseOverlay(); }
     }
 }

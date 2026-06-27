@@ -3,20 +3,19 @@ using UnityEngine.UI;
 
 namespace CrowdRunner
 {
-    public class VictoryUI : MonoBehaviour
+    public class VictoryUI : UIPanel
     {
-        [SerializeField] private GameObject _root;
         [SerializeField] private Text _resultText;
+        [SerializeField] private GameObject _doubleButton;  // x2 за рекламу — пока доступно
 
-        public void Show(bool v) { if (_root != null) _root.SetActive(v); }
-
-        public void Set(int survivors, int coins)
+        public void Set(int survivors, int coins, bool canDouble)
         {
             if (_resultText != null) _resultText.text = $"Уровень пройден!\nВыжило: {survivors}\nНаграда: {coins}";
+            if (_doubleButton != null) _doubleButton.SetActive(canDouble);
         }
 
-        public void OnNext() => RunnerGameManager.Instance?.NextLevel();
-        public void OnDouble() => RunnerGameManager.Instance?.DoubleReward();
-        public void OnMenu() => RunnerGameManager.Instance?.ShowMenu();
+        public void OnNext() => GM?.NextLevel();
+        public void OnDouble() => GM?.DoubleReward();
+        public void OnMenu() => GM?.ShowMenu();
     }
 }

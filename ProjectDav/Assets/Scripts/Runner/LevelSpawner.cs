@@ -40,7 +40,6 @@ namespace CrowdRunner
         [SerializeField] private float _boosterHp = 14f;
         [SerializeField] private float _boosterSpeed = 3.5f;
         [SerializeField] private float _boosterStop = 5f;       // где встаёт головной блок
-        [SerializeField] private float _boosterVulnMargin = 2f; // насколько дальше стоп-линии блок ещё можно пробить
 
         [Header("Colors")]
         [SerializeField] private Color _enemyColor = new Color(0.8f, 0.25f, 0.25f);
@@ -52,7 +51,8 @@ namespace CrowdRunner
         private bool _boosterLeft, _miniBossDone, _bossSpawned, _bossDefeated, _running;
         private EnemyController _bigBoss;
 
-        public float Progress01 => _enemyTotal > 0 ? Mathf.Clamp01((float)_spawnedCount / _enemyTotal) : 0f;
+        // Прогресс уровня = доля выпущенных врагов (а не пройденная дистанция).
+        public float SpawnProgress01 => _enemyTotal > 0 ? Mathf.Clamp01((float)_spawnedCount / _enemyTotal) : 0f;
 
         public void BeginLevel(int level)
         {
@@ -147,9 +147,8 @@ namespace CrowdRunner
             float z = _squad.position.z + _spawnDistance;
             var b = Instantiate(_boosterPrefab, new Vector3(x, 0f, z), Quaternion.identity);
             float hp = _boosterHp + _level * 2f;
-            float vuln = _boosterStop + _boosterVulnMargin;
-            if (x < 0f) b.InitWeapon(hp, _boosterSpeed, _boosterStop, _boosterGap, vuln);
-            else b.Init(Random.Range(4, 10), hp, _boosterSpeed, _boosterStop, _boosterGap, vuln);
+            if (x < 0f) b.InitWeapon(hp, _boosterSpeed, _boosterStop, _boosterGap);
+            else b.Init(Random.Range(4, 10), hp, _boosterSpeed, _boosterStop, _boosterGap);
         }
 
         public void NotifyEnemyRemoved(EnemyController e)

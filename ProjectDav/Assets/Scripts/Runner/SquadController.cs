@@ -18,7 +18,7 @@ namespace CrowdRunner
 
         [Header("Movement")]
         [SerializeField] private float _runSpeed = 0f; // отряд стоит на месте и отстреливается
-        [SerializeField] private float _roadHalfWidth = 10f; // включает боковые дорожки (бонусы)
+        [SerializeField] private float _roadHalfWidth = 9f; // ровно 3 дорожки: до центра боковой дорожки (±9), не шире
         [SerializeField] private float _strafeSpeed = 10f;
 
         [Header("Formation")]

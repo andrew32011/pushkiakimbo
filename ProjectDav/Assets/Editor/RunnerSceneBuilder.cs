@@ -442,43 +442,45 @@ public static class RunnerSceneBuilder
 
         // ---------- HUD ----------
         var hudPanel = Panel(root, "HUD", new Color(0, 0, 0, 0));
-        var hud = canvasGO.AddComponent<HudUI>();
+        var hud = hudPanel.AddComponent<HudUI>();
         SetRef(hud, "_root", hudPanel);
         var coinsHud = Counter(hudPanel.transform, IconCoin, new Vector2(0, 1), new Vector2(40, -50), "0");
+        var unitsHud = Counter(hudPanel.transform, IconCrown, new Vector2(0, 1), new Vector2(40, -130), "0"); // размер отряда
         var levelHud = Label(hudPanel.transform, "Ур. 1", new Vector2(-40, -50), new Vector2(300, 60), 34, TextAnchor.MiddleRight, new Vector2(1, 1));
         var wpnHud = Label(hudPanel.transform, "Ручное", new Vector2(-40, -110), new Vector2(300, 50), 28, TextAnchor.MiddleRight, new Vector2(1, 1));
         var progress = SpriteSlider(hudPanel.transform, new Vector2(0, -140), new Vector2(760, 44), new Vector2(0.5f, 1), ProgBg, ProgFill);
         progress.interactable = false; progress.value = 0f;
-        Icon(hudPanel.transform, IconPlay, new Vector2(-400, -140), new Vector2(46, 46), new Vector2(0.5f, 1));
-        Icon(hudPanel.transform, IconCrown, new Vector2(400, -140), new Vector2(52, 52), new Vector2(0.5f, 1));
+        // кнопки доступа во время боя (низ-лево)
+        var shopHud = IconButton(hudPanel.transform, "", "BLUE", IconCart, new Vector2(-430, -820), new Vector2(120, 120), 30);
+        var setHud = IconButton(hudPanel.transform, "", "GREY", IconGear, new Vector2(-430, -680), new Vector2(120, 120), 30);
         SetRef(hud, "_coinsText", coinsHud);
+        SetRef(hud, "_unitsText", unitsHud);
         SetRef(hud, "_levelText", levelHud);
         SetRef(hud, "_weaponText", wpnHud);
         SetRef(hud, "_progress", progress);
+        Wire(shopHud, hud.OnShop); Wire(setHud, hud.OnSettings);
         refs.hud = hud;
 
         // ---------- MAIN MENU ----------
         var menuPanel = SpritePanel(root, "MainMenu", PanelDark, new Color(0.12f, 0.14f, 0.22f, 1f));
         Stretch(menuPanel.GetComponent<RectTransform>());
-        var menu = canvasGO.AddComponent<MainMenuUI>();
+        var menu = menuPanel.AddComponent<MainMenuUI>();
         SetRef(menu, "_root", menuPanel);
         Label(menuPanel.transform, "CROWD RUNNER", new Vector2(0, 640), new Vector2(1000, 130), 72, TextAnchor.MiddleCenter, new Vector2(0.5f, 0.5f));
         Label(menuPanel.transform, "Epochs of War", new Vector2(0, 545), new Vector2(900, 70), 38, TextAnchor.MiddleCenter, new Vector2(0.5f, 0.5f));
-        var coinsMenu = Counter(menuPanel.transform, IconCoin, new Vector2(0.5f, 0.5f), new Vector2(-170, 780), "0");
-        var gemMenu = Counter(menuPanel.transform, IconGem, new Vector2(0.5f, 0.5f), new Vector2(120, 780), "0");
+        var coinsMenu = Counter(menuPanel.transform, IconCoin, new Vector2(0.5f, 0.5f), new Vector2(0, 780), "0");
         var levelMenu = Label(menuPanel.transform, "Уровень 1", new Vector2(0, 230), new Vector2(700, 80), 48, TextAnchor.MiddleCenter, new Vector2(0.5f, 0.5f));
         var playBtn = IconButton(menuPanel.transform, "ИГРАТЬ", "GREEN", IconPlay, new Vector2(0, 40), new Vector2(620, 170), 52);
         var shopBtn = IconButton(menuPanel.transform, "Магазин", "BLUE", IconCart, new Vector2(0, -160), new Vector2(620, 130), 40);
         var setBtn = IconButton(menuPanel.transform, "Настройки", "GREY", IconGear, new Vector2(0, -310), new Vector2(620, 130), 40);
         SetRef(menu, "_coinsText", coinsMenu);
-        SetRef(menu, "_crystalsText", gemMenu);
         SetRef(menu, "_levelText", levelMenu);
         Wire(playBtn, menu.OnPlay); Wire(shopBtn, menu.OnShop); Wire(setBtn, menu.OnSettings);
         refs.menu = menu;
 
         // ---------- DEFEAT ----------
         var defOverlay = Panel(root, "Defeat", new Color(0, 0, 0, 0.6f));
-        var defeat = canvasGO.AddComponent<DefeatUI>();
+        var defeat = defOverlay.AddComponent<DefeatUI>();
         SetRef(defeat, "_root", defOverlay);
         var defCard = SpritePanel(defOverlay.transform, "Card", PanelDark, new Color(0.5f, 0.18f, 0.2f, 1f));
         Card(defCard, new Vector2(880, 1080));
@@ -494,7 +496,7 @@ public static class RunnerSceneBuilder
 
         // ---------- VICTORY ----------
         var vicOverlay = Panel(root, "Victory", new Color(0, 0, 0, 0.6f));
-        var victory = canvasGO.AddComponent<VictoryUI>();
+        var victory = vicOverlay.AddComponent<VictoryUI>();
         SetRef(victory, "_root", vicOverlay);
         var vicCard = SpritePanel(vicOverlay.transform, "Card", PanelDark, new Color(0.16f, 0.5f, 0.24f, 1f));
         Card(vicCard, new Vector2(880, 1080));
@@ -504,12 +506,13 @@ public static class RunnerSceneBuilder
         var x2Btn = IconButton(vicCard.transform, "x2 награда (реклама)", "YELLOW", null, new Vector2(0, -230), new Vector2(720, 130), 36);
         var vicHome = IconButton(vicCard.transform, "В меню", "GREY", IconHome, new Vector2(0, -370), new Vector2(560, 110), 36);
         SetRef(victory, "_resultText", vicResult);
+        SetRef(victory, "_doubleButton", x2Btn.gameObject);
         Wire(nextBtn, victory.OnNext); Wire(x2Btn, victory.OnDouble); Wire(vicHome, victory.OnMenu);
         refs.victory = victory;
 
         // ---------- UPGRADES (SHOP) ----------
         var upgOverlay = Panel(root, "Upgrades", new Color(0, 0, 0, 0.6f));
-        var upg = canvasGO.AddComponent<UpgradeUI>();
+        var upg = upgOverlay.AddComponent<UpgradeUI>();
         SetRef(upg, "_root", upgOverlay);
         var upgCard = SpritePanel(upgOverlay.transform, "Card", PanelDark, new Color(0.14f, 0.16f, 0.26f, 1f));
         Card(upgCard, new Vector2(960, 1500));
@@ -537,7 +540,7 @@ public static class RunnerSceneBuilder
 
         // ---------- SETTINGS ----------
         var setOverlay = Panel(root, "Settings", new Color(0, 0, 0, 0.6f));
-        var settings = canvasGO.AddComponent<SettingsUI>();
+        var settings = setOverlay.AddComponent<SettingsUI>();
         SetRef(settings, "_root", setOverlay);
         var setCard = SpritePanel(setOverlay.transform, "Card", PanelDark, new Color(0.14f, 0.16f, 0.26f, 1f));
         Card(setCard, new Vector2(880, 900));

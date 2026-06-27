@@ -61,20 +61,18 @@ namespace CrowdRunner
         private void OnEnable() { YG2.onGetSDKData += OnSdkData; }
         private void OnDisable() { YG2.onGetSDKData -= OnSdkData; }
 
-        private bool _autoStarted;
-
         private void Start()
         {
-            // Меню пока отключено — игра должна стартовать сразу после запуска в Unity.
+            // Стартуем с главного меню; если SDK уже готов — сразу инициализируемся.
+            ShowMenu();
             if (YG2.isSDKEnabled) OnSdkData();
         }
 
         private void OnSdkData()
         {
             ApplyVolumes();
+            if (Phase == GamePhase.Menu) ShowMenu();
             OnEconomyChanged?.Invoke();
-            // Сразу запускаем забег, минуя главное меню (один раз).
-            if (!_autoStarted) { _autoStarted = true; StartRun(); }
         }
 
         // ---------- Экономика ----------
@@ -189,7 +187,7 @@ namespace CrowdRunner
         public void ReportKill(int score) { _runKills++; _runScore += Mathf.Max(1, score); _hudUI?.Refresh(); }
         public void RefreshHud() => _hudUI?.Refresh();
         public SquadController Squad => _squad;
-        public float LevelProgress => _spawner != null ? _spawner.Progress01 : 0f;
+        public float LevelProgress => _spawner != null ? _spawner.SpawnProgress01 : 0f;
 
         public void OnLevelCleared()
         {
@@ -206,7 +204,7 @@ namespace CrowdRunner
 
             YG2.GameplayStop();
             _victoryUI?.Show(true);
-            _victoryUI?.Set(survivors, _pendingCoins);
+            _victoryUI?.Set(survivors, _pendingCoins, true);
             YG2.InterstitialAdvShow();
         }
 
@@ -245,13 +243,13 @@ namespace CrowdRunner
             YG2.RewardedAdvShow(_doubleAdId, () =>
             {
                 AddCoins(_pendingCoins);
-                _victoryUI?.Set(_squad != null ? _squad.UnitCount : 0, _pendingCoins * 2);
+                _victoryUI?.Set(_squad != null ? _squad.UnitCount : 0, _pendingCoins * 2, false); // x2 уже получен — прячем
             });
         }
 
         private int ComputeRunCoins(bool fullClear)
         {
-            float progress = _spawner != null ? Mathf.Lerp(1f, 2f, _spawner.Progress01) : 1f;
+            float progress = _spawner != null ? Mathf.Lerp(1f, 2f, _spawner.SpawnProgress01) : 1f;
             float completion = fullClear ? 5f : 1f;
             return Mathf.Max(1, Mathf.RoundToInt(_runScore * progress * completion * 0.5f));
         }
@@ -270,7 +268,14 @@ namespace CrowdRunner
             if (AudioController.Instance != null) AudioController.Instance.SetSfxVolume(saves.sfxVolume);
         }
 
-        public void OpenUpgrades() => _upgradeUI?.Show(true);
-        public void OpenSettings() => _settingsUI?.Show(true);
+        public void OpenUpgrades() { _upgradeUI?.Show(true); PauseForOverlay(true); }
+        public void OpenSettings() { _settingsUI?.Show(true); PauseForOverlay(true); }
+        public void CloseOverlay() => PauseForOverlay(false);
+
+        // Пауза только во время боя; в меню время и так идёт нормально.
+        private void PauseForOverlay(bool paused)
+        {
+            if (Phase == GamePhase.Running) Time.timeScale = paused ? 0f : 1f;
+        }
     }
 }

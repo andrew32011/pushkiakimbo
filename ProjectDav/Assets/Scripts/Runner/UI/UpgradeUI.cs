@@ -3,18 +3,15 @@ using UnityEngine.UI;
 
 namespace CrowdRunner
 {
-    public class UpgradeUI : MonoBehaviour
+    public class UpgradeUI : UIPanel
     {
-        [SerializeField] private GameObject _root;
         [SerializeField] private Text _coinsText;
         [SerializeField] private Text[] _levelTexts = new Text[4]; // по UpgradeType
         [SerializeField] private Text[] _costTexts = new Text[4];
 
-        public void Show(bool v) { if (_root != null) _root.SetActive(v); if (v) Refresh(); }
-
-        public void Refresh()
+        public override void Refresh()
         {
-            var gm = RunnerGameManager.Instance;
+            var gm = GM;
             if (gm == null) return;
             if (_coinsText != null) _coinsText.text = gm.Coins.ToString();
             for (int i = 0; i < 4; i++)
@@ -29,8 +26,7 @@ namespace CrowdRunner
 
         private void Buy(UpgradeType t)
         {
-            if (RunnerGameManager.Instance != null && RunnerGameManager.Instance.TryBuyUpgrade(t))
-                Refresh();
+            if (GM != null && GM.TryBuyUpgrade(t)) Refresh();
         }
 
         // ---- Кнопки ----
@@ -38,7 +34,7 @@ namespace CrowdRunner
         public void OnBuyStartUnits() => Buy(UpgradeType.StartUnits);
         public void OnBuyFireRate() => Buy(UpgradeType.FireRate);
         public void OnBuyVolley() => Buy(UpgradeType.Volley);
-        public void OnFreeUpgrade() { RunnerGameManager.Instance?.GrantFreeUpgrade(); Refresh(); }
-        public void OnClose() { Show(false); }
+        public void OnFreeUpgrade() { GM?.GrantFreeUpgrade(); Refresh(); }
+        public void OnClose() { Show(false); GM?.CloseOverlay(); }
     }
 }
