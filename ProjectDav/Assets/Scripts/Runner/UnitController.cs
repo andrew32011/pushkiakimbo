@@ -7,9 +7,19 @@ namespace CrowdRunner
     {
         [SerializeField] private Transform _muzzle;
         [SerializeField] private Transform _weaponMount;
+        [SerializeField] private Transform _modelRoot;   // держатель тела (для подмены из пака)
+        [SerializeField] private float _modelHeight = 1.6f;
 
         private GameObject _weaponModel;
         private GameObject _weaponSource;
+
+        // Тело юнита из пака (если задано) подменяет запечённое; null — оставляем запечённое.
+        public void SetBodyModel(GameObject modelPrefab)
+        {
+            if (modelPrefab == null || _modelRoot == null) return;
+            for (int i = _modelRoot.childCount - 1; i >= 0; i--) Destroy(_modelRoot.GetChild(i).gameObject);
+            ModelUtil.Wrap(modelPrefab, _modelRoot, _modelHeight, new Color(0.3f, 0.6f, 1f), out _);
+        }
 
         public Vector3 MuzzleWorld => _muzzle != null ? _muzzle.position : transform.position + Vector3.up * 0.6f;
 

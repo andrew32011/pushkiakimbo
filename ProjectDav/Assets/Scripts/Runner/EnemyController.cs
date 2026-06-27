@@ -8,6 +8,8 @@ namespace CrowdRunner
         [SerializeField] private TextMesh _label;
         [SerializeField] private Renderer[] _renderers;
         [SerializeField] private Transform _hpBarFill;   // для босса: масштаб по доле HP
+        [SerializeField] private Transform _modelRoot;   // держатель визуальной модели (для подмены из пака)
+        [SerializeField] private float _modelHeight = 1.7f;
 
         private LevelSpawner _spawner;
         private bool _isBoss;
@@ -32,7 +34,7 @@ namespace CrowdRunner
         public int Level => _level;
         public int CrowdCount => Mathf.Max(1, Mathf.CeilToInt(_hp / _hpPerUnit));
 
-        public void InitCrowd(LevelSpawner spawner, int count, int level, float speed, float hpPerUnit, int contactDamage, float hitInterval, float stopDist, float homingDist, Color tint)
+        public void InitCrowd(LevelSpawner spawner, int count, int level, float speed, float hpPerUnit, int contactDamage, float hitInterval, float stopDist, float homingDist, GameObject model, Color tint)
         {
             _spawner = spawner; _isBoss = false; _level = level; _speed = speed;
             _hpPerUnit = Mathf.Max(1f, hpPerUnit);
@@ -41,18 +43,18 @@ namespace CrowdRunner
             _hitInterval = Mathf.Max(0.2f, hitInterval);
             _stopDist = stopDist;
             _homingDist = homingDist;
-            Tint(tint);
+            SetModel(model, tint);
             if (_hpBarFill != null) _hpBarFill.gameObject.SetActive(false);
             if (_label != null) _label.gameObject.SetActive(count > 1); // у орды из одиночек цифру не показываем
             UpdateLabel();
         }
 
-        public void InitBoss(LevelSpawner spawner, float hp, int level, float speed, int bonusUnits, int contactDamage, float hitInterval, float homingDist, Color tint)
+        public void InitBoss(LevelSpawner spawner, float hp, int level, float speed, int bonusUnits, int contactDamage, float hitInterval, float homingDist, GameObject model, Color tint)
         {
             _spawner = spawner; _isBoss = true; _level = level; _speed = speed;
             _maxHp = _hp = hp; _bonusUnits = bonusUnits; _contactDamage = contactDamage; _hitInterval = hitInterval;
             _stopDist = 1.2f; _homingDist = homingDist;
-            Tint(tint);
+            SetModel(model, tint);
             UpdateLabel();
             UpdateHpBar();
         }
@@ -62,6 +64,15 @@ namespace CrowdRunner
             if (_renderers != null)
                 foreach (var r in _renderers)
                     if (r != null && r.material != null) r.material.color = c;
+        }
+
+        // Модель из пака (если задана) подменяет запечённую; иначе оставляем запечённую и тонируем.
+        private void SetModel(GameObject modelPrefab, Color tint)
+        {
+            if (modelPrefab == null || _modelRoot == null) { Tint(tint); return; }
+            for (int i = _modelRoot.childCount - 1; i >= 0; i--) Destroy(_modelRoot.GetChild(i).gameObject);
+            ModelUtil.Wrap(modelPrefab, _modelRoot, _modelHeight, tint, out var rends);
+            _renderers = rends;
         }
 
         private void Update()

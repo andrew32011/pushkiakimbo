@@ -62,10 +62,12 @@ public static class LevelPackBuilder
             pack.levelName = EpochNames[e];
             pack.epoch = e;
             pack.sceneAddress = SceneAddr[e];
-            pack.squadUnitModel = stickman;
-            pack.weaponModels = (GameObject[])weapons.Clone();
-            pack.enemyModels = new[] { stickman };  // пока заглушка-стикмен; позже свои модели орды
-            pack.bossModels = new[] { stickman };
+            // Модели по умолчанию пустые → используется запечённый билдером меш (без перерасхода).
+            // Заполни их позже, когда будут свои модели орды/боссов/отряда по эпохам.
+            pack.squadUnitModel = null;
+            pack.weaponModels = (GameObject[])weapons.Clone(); // оружие реально используется
+            pack.enemyModels = new GameObject[0];
+            pack.bossModels = new GameObject[0];
             pack.enemyColor = EnemyColors[e];
             pack.bossColor = BossColors[e];
 

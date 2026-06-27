@@ -138,8 +138,11 @@ public static class RunnerSceneBuilder
     {
         var src = AssetDatabase.LoadAssetAtPath<GameObject>(StickmanPath);
         var root = new GameObject("UnitStickman");
-        WrapModel(src, root.transform, 1.6f, new Color(0.3f, 0.6f, 1f));
+        var modelRoot = new GameObject("ModelRoot").transform;
+        modelRoot.SetParent(root.transform, false);
+        WrapModel(src, modelRoot, 1.6f, new Color(0.3f, 0.6f, 1f));
         var uc = root.AddComponent<UnitController>();
+        SetRef(uc, "_modelRoot", modelRoot);
 
         var muzzle = new GameObject("Muzzle").transform;
         muzzle.SetParent(root.transform); muzzle.localPosition = new Vector3(0f, 0.7f, 0.35f);
@@ -157,7 +160,9 @@ public static class RunnerSceneBuilder
     {
         var src = AssetDatabase.LoadAssetAtPath<GameObject>(StickmanPath);
         var root = new GameObject("EnemyStickman");
-        var model = WrapModel(src, root.transform, 1.7f, new Color(0.85f, 0.25f, 0.25f));
+        var modelRoot = new GameObject("ModelRoot").transform;
+        modelRoot.SetParent(root.transform, false);
+        var model = WrapModel(src, modelRoot, 1.7f, new Color(0.85f, 0.25f, 0.25f));
 
         var col = root.AddComponent<BoxCollider>();
         col.center = new Vector3(0f, 0.85f, 0f);
@@ -178,6 +183,7 @@ public static class RunnerSceneBuilder
 
         SetRef(ec, "_label", label.GetComponent<TextMesh>());
         SetRef(ec, "_hpBarFill", pivot);
+        SetRef(ec, "_modelRoot", modelRoot);
         SetRefArray(ec, "_renderers", model.GetComponentsInChildren<Renderer>());
 
         var prefab = PrefabUtility.SaveAsPrefabAsset(root, GenFolder + "/EnemyStickman.prefab");

@@ -50,13 +50,15 @@ namespace CrowdRunner
         public WeaponType Weapon => _weapon;
         public Vector3 Center => transform.position;
 
-        // Берём модели оружия из пака уровня (с фолбэком на захардкоженные билдером).
+        private GameObject _unitModel; // тело юнита из пака (null = запечённое)
+
+        // Берём модели оружия и тела юнита из пака уровня (с фолбэком на запечённые билдером).
         public void ApplyPack(LevelPack pack)
         {
             if (pack == null) return;
             if (pack.weaponModels != null && pack.weaponModels.Length >= 4)
                 _weaponModels = pack.weaponModels;
-            // модель самого юнита из пака подключим на след. шаге (runtime-инжект меша).
+            _unitModel = pack.squadUnitModel;
         }
 
         public void Setup(int count, float damage, float fireInterval, int volley, WeaponType weapon)
@@ -191,6 +193,7 @@ namespace CrowdRunner
                 go.name = "Unit";
                 var uc = go.GetComponent<UnitController>();
                 if (uc == null) uc = go.AddComponent<UnitController>();
+                uc.SetBodyModel(_unitModel);
                 uc.EquipWeapon(model);
                 _units.Add(uc);
             }

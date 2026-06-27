@@ -54,13 +54,16 @@ namespace CrowdRunner
         // Прогресс уровня = доля выпущенных врагов (а не пройденная дистанция).
         public float SpawnProgress01 => _enemyTotal > 0 ? Mathf.Clamp01((float)_spawnedCount / _enemyTotal) : 0f;
 
-        // Берём палитру (и далее — модели) из пака уровня. Фолбэк — значения из инспектора.
+        private GameObject _enemyModel, _bossModel; // модели из пака (null = запечённая)
+
+        // Берём палитру и модели орды/боссов из пака уровня. Фолбэк — значения/меши билдера.
         public void ApplyPack(LevelPack pack)
         {
             if (pack == null) return;
             _enemyColor = pack.enemyColor;
             _bossColor = pack.bossColor;
-            // модели орды/боссов из пака подключим на след. шаге (runtime-инжект меша).
+            _enemyModel = (pack.enemyModels != null && pack.enemyModels.Length > 0) ? pack.enemyModels[0] : null;
+            _bossModel = (pack.bossModels != null && pack.bossModels.Length > 0) ? pack.bossModels[0] : null;
         }
 
         public void BeginLevel(int level)
@@ -129,7 +132,7 @@ namespace CrowdRunner
                 var e = Instantiate(_enemyPrefab, new Vector3(x, 0f, z), Quaternion.identity);
                 e.transform.localScale = Vector3.one;
                 e.InitCrowd(this, 1, 1 + _level, _enemySpeed, _crowdHpPerUnit,
-                            _enemyContactDamage, _enemyHitInterval, _enemyStop, _enemyHomingDist, _enemyColor);
+                            _enemyContactDamage, _enemyHitInterval, _enemyStop, _enemyHomingDist, _enemyModel, _enemyColor);
                 _alive.Add(e);
                 _spawnedCount++;
             }
@@ -144,7 +147,7 @@ namespace CrowdRunner
             float z = _squad.position.z + _spawnDistance;
             var boss = Instantiate(_enemyPrefab, new Vector3(0f, 0f, z), Quaternion.identity);
             boss.transform.localScale = Vector3.one * (big ? 2.8f : 1.9f);
-            boss.InitBoss(this, hp, (1 + _level) * (big ? 5 : 3), _enemySpeed * 0.7f, bonus, contactDmg, big ? 0.5f : 0.6f, _enemyHomingDist, _bossColor);
+            boss.InitBoss(this, hp, (1 + _level) * (big ? 5 : 3), _enemySpeed * 0.7f, bonus, contactDmg, big ? 0.5f : 0.6f, _enemyHomingDist, _bossModel, _bossColor);
             _alive.Add(boss);
             if (big) _bigBoss = boss;
         }
