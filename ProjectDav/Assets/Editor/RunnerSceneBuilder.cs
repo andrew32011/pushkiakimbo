@@ -30,6 +30,14 @@ public static class RunnerSceneBuilder
     private const string IconGear = "Assets/Mini UI/UI Icons/Gear.png";
     private const string IconHome = "Assets/Mini UI/UI Icons/Home.png";
     private const string IconClose = "Assets/Mini UI/UI Icons/Close.png";
+    private const string IconLock = "Assets/Mini UI/Icons/Lock.png";
+    private const string IconMap = "Assets/Mini UI/Icons/Map.png";
+    private const string IconChest = "Assets/Mini UI/Icons/Chest 1.png";
+    private const string IconChestCoin = "Assets/Mini UI/Icons/Chest Of Coin.png";
+    private const string IconChestGem = "Assets/Mini UI/Icons/Chest Of Gem.png";
+    private const string IconGift = "Assets/Mini UI/Icons/Gift.png";
+    private const string IconShield = "Assets/Mini UI/Icons/Shield.png";
+    private const string IconStar = "Assets/Mini UI/Icons/Star Yellow.png";
     private const string ProgBg = "Assets/Mini UI/Progress Bar/Progress Bar BG.png";
     private const string ProgFill = "Assets/Mini UI/Progress Bar/Progress bar fill GREEN.png";
 
@@ -607,13 +615,14 @@ public static class RunnerSceneBuilder
         Wire(setClose, settings.OnClose); Wire(setMenu, settings.OnMenu);
         refs.settings = settings;
 
-        // ---------- SHOP (IAP) / CASES / LEVEL SELECT — каркасы (контент в Стадии 3) ----------
+        // ---------- SHOP (IAP) / CASES / LEVEL SELECT ----------
         refs.shop = BuildStubOverlay<ShopUI>(root, "Shop", "МАГАЗИН",
-            new[] { "Стартовые бонусы", "Скины", "Кейсы", "Отключить рекламу" });
+            new[] { "Стартовые бонусы", "Скины", "Кейсы", "Отключить рекламу" },
+            new[] { IconGift, IconShield, IconChest, IconClose });
         refs.cases = BuildStubOverlay<CasesUI>(root, "Cases", "КЕЙСЫ",
-            new[] { "Открыть за монеты", "Открыть за кристаллы" });
-        refs.levelSelect = BuildStubOverlay<LevelSelectUI>(root, "LevelSelect", "ВЫБОР УРОВНЕЙ",
-            new[] { "Эпоха 1 — Первобытность", "Эпоха 2 — 🔒", "Эпоха 3 — 🔒", "Эпоха 4 — 🔒" });
+            new[] { "Открыть за монеты", "Открыть за кристаллы" },
+            new[] { IconChestCoin, IconChestGem });
+        refs.levelSelect = BuildLevelSelect(root);
 
         hudPanel.SetActive(false);
         defOverlay.SetActive(false); vicOverlay.SetActive(false);
@@ -743,8 +752,8 @@ public static class RunnerSceneBuilder
         return btn;
     }
 
-    // Каркас оверлея с выезжающей карточкой: заголовок + строки-заглушки + Закрыть/В меню.
-    private static T BuildStubOverlay<T>(Transform root, string name, string title, string[] lines) where T : UIPanel
+    // Каркас оверлея с выезжающей карточкой: заголовок + строки-кнопки с иконками + Закрыть/В меню.
+    private static T BuildStubOverlay<T>(Transform root, string name, string title, string[] lines, string[] icons) where T : UIPanel
     {
         var overlay = Panel(root, name, new Color(0, 0, 0, 0.6f));
         var comp = overlay.AddComponent<T>();
@@ -753,11 +762,54 @@ public static class RunnerSceneBuilder
         Card(card, new Vector2(900, 1300));
         Label(card.transform, title, new Vector2(0, 560), new Vector2(820, 100), 56, TextAnchor.MiddleCenter, new Vector2(0.5f, 0.5f));
         for (int i = 0; i < lines.Length; i++)
-            IconButton(card.transform, lines[i], "BLUE", null, new Vector2(0, 360 - i * 150), new Vector2(740, 120), 32); // заглушки
+        {
+            string ic = (icons != null && i < icons.Length) ? icons[i] : null;
+            IconButton(card.transform, lines[i], "BLUE", ic, new Vector2(0, 360 - i * 150), new Vector2(740, 120), 32); // заглушки
+        }
         var close = IconButton(card.transform, "Закрыть", "RED", IconClose, new Vector2(-200, -560), new Vector2(400, 110), 34);
         var toMenu = IconButton(card.transform, "В меню", "GREY", IconHome, new Vector2(220, -560), new Vector2(400, 110), 34);
         SetRef(comp, "_slideRect", card.GetComponent<RectTransform>());
         Wire(close, comp.OnClose); Wire(toMenu, comp.OnMenu);
+        overlay.SetActive(false);
+        return comp;
+    }
+
+    // Экран выбора эпохи: 4 эпохи, замок на закрытых, попап с условием разблокировки.
+    private static LevelSelectUI BuildLevelSelect(Transform root)
+    {
+        var overlay = Panel(root, "LevelSelect", new Color(0, 0, 0, 0.6f));
+        var comp = overlay.AddComponent<LevelSelectUI>();
+        SetRef(comp, "_root", overlay);
+        var card = SpritePanel(overlay.transform, "Card", PanelDark, new Color(0.14f, 0.16f, 0.26f, 1f));
+        Card(card, new Vector2(980, 1400));
+        Label(card.transform, "ВЫБОР ЭПОХИ", new Vector2(0, 600), new Vector2(820, 100), 54, TextAnchor.MiddleCenter, new Vector2(0.5f, 0.5f));
+
+        string[] epochs = { "Первобытность", "Средневековье", "Пороховая эпоха", "Вторая мировая" };
+        string[] colors = { "GREEN", "BLUE", "YELLOW", "RED" };
+        var btns = new Button[4];
+        var locks = new GameObject[4];
+        for (int i = 0; i < 4; i++)
+        {
+            btns[i] = IconButton(card.transform, $"Эпоха {i + 1}: {epochs[i]}", colors[i], IconMap, new Vector2(0, 380 - i * 175), new Vector2(820, 150), 30);
+            locks[i] = Icon(btns[i].transform, IconLock, new Vector2(330, 0), new Vector2(74, 74), new Vector2(0.5f, 0.5f)).gameObject;
+        }
+        Wire(btns[0], comp.OnEpoch1); Wire(btns[1], comp.OnEpoch2); Wire(btns[2], comp.OnEpoch3); Wire(btns[3], comp.OnEpoch4);
+
+        var close = IconButton(card.transform, "Закрыть", "RED", IconClose, new Vector2(-200, -580), new Vector2(400, 110), 34);
+        var toMenu = IconButton(card.transform, "В меню", "GREY", IconHome, new Vector2(220, -580), new Vector2(400, 110), 34);
+        Wire(close, comp.OnClose); Wire(toMenu, comp.OnMenu);
+
+        // Попап-подсказка по замку (перекрывает карточку)
+        var popup = Panel(card.transform, "LockPopup", new Color(0.05f, 0.06f, 0.1f, 0.92f));
+        var popupText = Label(popup.transform, "", new Vector2(0, 90), new Vector2(820, 320), 34, TextAnchor.MiddleCenter, new Vector2(0.5f, 0.5f));
+        var ok = IconButton(popup.transform, "Понятно", "GREEN", null, new Vector2(0, -180), new Vector2(380, 120), 36);
+        Wire(ok, comp.OnLockOk);
+        popup.SetActive(false);
+
+        SetRefArray(comp, "_lockIcons", locks);
+        SetRef(comp, "_lockPopup", popup);
+        SetRef(comp, "_lockPopupText", popupText);
+        SetRef(comp, "_slideRect", card.GetComponent<RectTransform>());
         overlay.SetActive(false);
         return comp;
     }

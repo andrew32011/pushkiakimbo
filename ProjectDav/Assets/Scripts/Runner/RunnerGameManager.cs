@@ -46,9 +46,25 @@ namespace CrowdRunner
         [SerializeField] private int _maxContinues = 3; // по диздоку: до 3 воскрешений за забег
         [SerializeField] private int _continueUnits = 10;
 
+        [Header("Epochs")]
+        [SerializeField] private int _levelsPerEpoch = 5;
+
         public GamePhase Phase { get; private set; } = GamePhase.Menu;
         public int Level => Mathf.Max(1, saves.level);
         public int CurrentEpoch => (Level - 1) % 4;
+
+        // ---------- Эпохи / выбор уровня ----------
+        public const int EpochCount = 4;
+        public bool IsEpochUnlocked(int epoch) => epoch <= 0 || saves.maxLevel > epoch * _levelsPerEpoch;
+        public int EpochStartLevel(int epoch) => Mathf.Max(1, epoch * _levelsPerEpoch + 1);
+
+        public void SelectEpoch(int epoch)
+        {
+            if (!IsEpochUnlocked(epoch)) return;
+            saves.level = EpochStartLevel(epoch);
+            YG2.SaveProgress();
+            StartRun();
+        }
 
         private SavesYG saves => YG2.saves;
         private int _runScore, _runKills, _continuesUsed, _pendingCoins;
