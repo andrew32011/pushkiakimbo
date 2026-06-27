@@ -16,43 +16,53 @@ namespace CrowdRunner
         [Header("Refs")]
         [SerializeField] private Transform _squad;
 
-        [Header("Поток врагов (рандомный)")]
-        [SerializeField] private int _enemyTotalBase = 50;     // всего врагов за уровень
-        [SerializeField] private int _enemyTotalPerLevel = 20;
-        [SerializeField] private float _spawnMin = 0.35f;      // мин/макс пауза между подспавнами
-        [SerializeField] private float _spawnMax = 1.1f;
-        [SerializeField] private int _spawnGroupMax = 4;       // сколько врагов за один подспавн
-        [SerializeField] private float _spawnDistance = 45f;   // где появляются впереди
-        [SerializeField] private float _laneHalfWidth = 6f;    // ширина центральной дорожки
+        [Header("Поток врагов / длина волны")]
+        [SerializeField] private int _enemyTotalBase = 150;    // длинная волна (1-й уровень)
+        [SerializeField] private int _enemyTotalPerLevel = 90; // + к длине волны за уровень
+        [SerializeField] private float _spawnMin = 0.3f;       // мин/макс пауза между подспавнами
+        [SerializeField] private float _spawnMax = 0.9f;
+        [SerializeField] private int _spawnGroupMax = 4;       // база группы (растёт к концу уровня)
+        [SerializeField] private float _spawnDistance = 45f;
+        [SerializeField] private float _laneHalfWidth = 6f;
+
+        [Header("Кривая сложности")]
+        [SerializeField] private float _levelGrowth = 1.85f;   // геометрический рост между уровнями
+        [SerializeField] private float _inLevelRamp = 1.6f;    // рост сложности к концу уровня (1 + progress*ramp)
+        [SerializeField] private int _miniBossCount = 3;       // промежуточных боссов за уровень
 
         [Header("Орда")]
         [SerializeField] private float _crowdHpPerUnit = 4f;
         [SerializeField] private float _enemySpeed = 2.6f;
-        [SerializeField] private float _enemyStop = 2.2f;        // встаёт перед отрядом
-        [SerializeField] private float _enemyHomingDist = 6f;    // с какой дистанции наводится на отряд
+        [SerializeField] private float _enemyStop = 2.2f;
+        [SerializeField] private float _enemyHomingDist = 6f;
         [SerializeField] private int _enemyContactDamage = 1;
         [SerializeField] private float _enemyHitInterval = 1.5f;
 
-        [Header("Бонусы (боковые дорожки, по одному)")]
+        [Header("Бонусы (боковые дорожки)")]
         [SerializeField] private float _sideLaneX = 9f;
-        [SerializeField] private float _boosterInterval = 2.0f; // как часто выезжает новый блок
-        [SerializeField] private float _boosterGap = 2.2f;      // дистанция в очереди
-        [SerializeField] private float _boosterHp = 14f;
+        [SerializeField] private float _boosterInterval = 2.0f;
+        [SerializeField] private float _boosterGap = 2.2f;
+        [SerializeField] private float _boosterHpBase = 12f;   // HP первого бонуса в уровне
+        [SerializeField] private float _boosterHpStep = 7f;    // +HP за каждый следующий бонус (линейно)
         [SerializeField] private float _boosterSpeed = 3.5f;
-        [SerializeField] private float _boosterStop = 5f;       // где встаёт головной блок
+        [SerializeField] private float _boosterStop = 5f;
 
         [Header("Colors")]
         [SerializeField] private Color _enemyColor = new Color(0.8f, 0.25f, 0.25f);
         [SerializeField] private Color _bossColor = new Color(0.55f, 0.15f, 0.6f);
 
         private readonly List<EnemyController> _alive = new List<EnemyController>();
-        private int _enemyTotal, _spawnedCount, _level;
+        private int _enemyTotal, _spawnedCount, _level, _miniBossesDone, _boosterIndex;
         private float _spawnTimer, _boosterTimer;
-        private bool _boosterLeft, _miniBossDone, _bossSpawned, _bossDefeated, _running;
+        private bool _boosterLeft, _bossSpawned, _bossDefeated, _running;
         private EnemyController _bigBoss;
 
         // Прогресс уровня = доля выпущенных врагов (а не пройденная дистанция).
         public float SpawnProgress01 => _enemyTotal > 0 ? Mathf.Clamp01((float)_spawnedCount / _enemyTotal) : 0f;
+
+        // Геометрический рост между уровнями и плавный рост к концу уровня.
+        private float Diff => Mathf.Pow(_levelGrowth, Mathf.Max(0, _level - 1));
+        private float Ramp => 1f + SpawnProgress01 * _inLevelRamp;
 
         private GameObject _enemyModel, _bossModel; // модели из пака (null = запечённая)
 
@@ -70,11 +80,13 @@ namespace CrowdRunner
         {
             _level = Mathf.Max(1, level);
             ClearAllEnemies();
-            _enemyTotal = _enemyTotalBase + _level * _enemyTotalPerLevel;
+            _enemyTotal = _enemyTotalBase + (_level - 1) * _enemyTotalPerLevel;
             _spawnedCount = 0;
+            _miniBossesDone = 0;
+            _boosterIndex = 0;
             _spawnTimer = 0.8f;
             _boosterTimer = 0.5f;
-            _miniBossDone = _bossSpawned = _bossDefeated = false;
+            _bossSpawned = _bossDefeated = false;
             _bigBoss = null;
             _running = true;
         }
@@ -91,9 +103,12 @@ namespace CrowdRunner
                 _spawnTimer -= Time.deltaTime;
                 if (_spawnTimer <= 0f)
                 {
-                    _spawnTimer = Random.Range(_spawnMin, _spawnMax);
+                    _spawnTimer = Random.Range(_spawnMin, _spawnMax) / Ramp; // к концу уровня — чаще
                     SpawnTrickle();
-                    if (!_miniBossDone && _spawnedCount >= _enemyTotal / 2) { _miniBossDone = true; SpawnBoss(false); }
+                    // несколько промежуточных боссов за уровень, равномерно по волне
+                    int threshold = (_miniBossesDone + 1) * _enemyTotal / (_miniBossCount + 1);
+                    if (_miniBossesDone < _miniBossCount && _spawnedCount >= threshold)
+                    { _miniBossesDone++; SpawnBoss(false); }
                 }
             }
             else if (!_bossSpawned)
@@ -124,15 +139,19 @@ namespace CrowdRunner
         private void SpawnTrickle()
         {
             if (_enemyPrefab == null) return;
-            int n = Mathf.Min(Random.Range(1, _spawnGroupMax + 1), _enemyTotal - _spawnedCount);
+            float diff = Diff, ramp = Ramp;
+            int groupMax = Mathf.Max(1, Mathf.RoundToInt(_spawnGroupMax * ramp)); // больше мобов к концу уровня
+            int n = Mathf.Min(Random.Range(1, groupMax + 1), _enemyTotal - _spawnedCount);
+            float hpPerUnit = _crowdHpPerUnit * diff * ramp;                       // выживаемость растёт
+            int contact = Mathf.Max(1, Mathf.RoundToInt(_enemyContactDamage * diff));
             for (int k = 0; k < n; k++)
             {
                 float x = Random.Range(-_laneHalfWidth, _laneHalfWidth);
                 float z = _squad.position.z + _spawnDistance + Random.Range(-3f, 6f);
                 var e = Instantiate(_enemyPrefab, new Vector3(x, 0f, z), Quaternion.identity);
                 e.transform.localScale = Vector3.one;
-                e.InitCrowd(this, 1, 1 + _level, _enemySpeed, _crowdHpPerUnit,
-                            _enemyContactDamage, _enemyHitInterval, _enemyStop, _enemyHomingDist, _enemyModel, _enemyColor);
+                e.InitCrowd(this, 1, 1 + _level, _enemySpeed, hpPerUnit,
+                            contact, _enemyHitInterval, _enemyStop, _enemyHomingDist, _enemyModel, _enemyColor);
                 _alive.Add(e);
                 _spawnedCount++;
             }
@@ -141,9 +160,10 @@ namespace CrowdRunner
         private void SpawnBoss(bool big)
         {
             if (_enemyPrefab == null) return;
-            float hp = (big ? 400f : 140f) * (1f + _level * 0.4f);
-            int bonus = big ? Random.Range(30, 51) : Random.Range(15, 26);
-            int contactDmg = big ? 6 + _level : 4 + _level / 2;
+            float diff = Diff;
+            float hp = (big ? 420f : 150f) * diff * (big ? 1f : (1f + SpawnProgress01 * 0.5f));
+            int bonus = big ? Random.Range(30, 51) : Random.Range(12, 22);
+            int contactDmg = Mathf.RoundToInt((big ? 6f : 4f) * diff) + _level;
             float z = _squad.position.z + _spawnDistance;
             var boss = Instantiate(_enemyPrefab, new Vector3(0f, 0f, z), Quaternion.identity);
             boss.transform.localScale = Vector3.one * (big ? 2.8f : 1.9f);
@@ -153,12 +173,14 @@ namespace CrowdRunner
         }
 
         // Левая дорожка — только оружие, правая — только +юниты.
+        // Каждый следующий бонус требует больше HP (линейно в сессии), масштаб по уровню.
         private void SpawnBoosterBlock(float x)
         {
             if (_boosterPrefab == null) return;
             float z = _squad.position.z + _spawnDistance;
             var b = Instantiate(_boosterPrefab, new Vector3(x, 0f, z), Quaternion.identity);
-            float hp = _boosterHp + _level * 2f;
+            float hp = (_boosterHpBase + _boosterIndex * _boosterHpStep) * Diff;
+            _boosterIndex++;
             if (x < 0f) b.InitWeapon(hp, _boosterSpeed, _boosterStop, _boosterGap);
             else b.Init(Random.Range(4, 10), hp, _boosterSpeed, _boosterStop, _boosterGap);
         }
