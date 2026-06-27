@@ -25,6 +25,6 @@ namespace CrowdRunner
         public void OnContinue() => GM?.ContinueRun();
         public void OnDouble() => GM?.DoubleDefeatReward();
         public void OnRetry() => GM?.RestartLevel();
-        public void OnMenu() => GM?.ShowMenu();
+        // OnMenu — из базового UIPanel.
     }
 }

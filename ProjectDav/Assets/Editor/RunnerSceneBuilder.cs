@@ -110,6 +110,9 @@ public static class RunnerSceneBuilder
         SetRef(gm, "_victoryUI", ui.victory);
         SetRef(gm, "_upgradeUI", ui.upgrade);
         SetRef(gm, "_settingsUI", ui.settings);
+        SetRef(gm, "_shopUI", ui.shop);
+        SetRef(gm, "_casesUI", ui.cases);
+        SetRef(gm, "_levelSelectUI", ui.levelSelect);
 
         PlayerSettings.defaultInterfaceOrientation = UIOrientation.Portrait;
 
@@ -417,6 +420,7 @@ public static class RunnerSceneBuilder
     {
         public MainMenuUI menu; public HudUI hud; public DefeatUI defeat;
         public VictoryUI victory; public UpgradeUI upgrade; public SettingsUI settings;
+        public ShopUI shop; public CasesUI cases; public LevelSelectUI levelSelect;
     }
 
     private static UiRefs BuildCanvas()
@@ -466,22 +470,33 @@ public static class RunnerSceneBuilder
         refs.hud = hud;
 
         // ---------- MAIN MENU ----------
-        var menuPanel = SpritePanel(root, "MainMenu", PanelDark, new Color(0.12f, 0.14f, 0.22f, 1f));
-        Stretch(menuPanel.GetComponent<RectTransform>());
+        // Прозрачная вуаль — за меню виден реальный 3D-отряд с выбранным оружием.
+        var menuPanel = Panel(root, "MainMenu", new Color(0.06f, 0.07f, 0.12f, 0.18f));
         var menu = menuPanel.AddComponent<MainMenuUI>();
         SetRef(menu, "_root", menuPanel);
-        Label(menuPanel.transform, "CROWD RUNNER", new Vector2(0, 640), new Vector2(1000, 130), 72, TextAnchor.MiddleCenter, new Vector2(0.5f, 0.5f));
-        Label(menuPanel.transform, "Epochs of War", new Vector2(0, 545), new Vector2(900, 70), 38, TextAnchor.MiddleCenter, new Vector2(0.5f, 0.5f));
-        var coinsMenu = Counter(menuPanel.transform, IconCoin, new Vector2(0.5f, 0.5f), new Vector2(-170, 780), "0");
-        var gemMenu = Counter(menuPanel.transform, IconGem, new Vector2(0.5f, 0.5f), new Vector2(120, 780), "0");
-        var levelMenu = Label(menuPanel.transform, "Уровень 1", new Vector2(0, 230), new Vector2(700, 80), 48, TextAnchor.MiddleCenter, new Vector2(0.5f, 0.5f));
-        var playBtn = IconButton(menuPanel.transform, "ИГРАТЬ", "GREEN", IconPlay, new Vector2(0, 40), new Vector2(620, 170), 52);
-        var shopBtn = IconButton(menuPanel.transform, "Магазин", "BLUE", IconCart, new Vector2(0, -160), new Vector2(620, 130), 40);
-        var setBtn = IconButton(menuPanel.transform, "Настройки", "GREY", IconGear, new Vector2(0, -310), new Vector2(620, 130), 40);
+
+        // Верх: заголовок, валюты, уровень
+        Label(menuPanel.transform, "CROWD RUNNER", new Vector2(0, 820), new Vector2(1000, 110), 64, TextAnchor.MiddleCenter, new Vector2(0.5f, 0.5f));
+        var coinsMenu = Counter(menuPanel.transform, IconCoin, new Vector2(0.5f, 0.5f), new Vector2(-170, 700), "0");
+        var gemMenu = Counter(menuPanel.transform, IconGem, new Vector2(0.5f, 0.5f), new Vector2(120, 700), "0");
+        var levelMenu = Label(menuPanel.transform, "Уровень 1", new Vector2(0, 610), new Vector2(700, 70), 40, TextAnchor.MiddleCenter, new Vector2(0.5f, 0.5f));
+
+        // Квадратные боковые кнопки
+        var upgBtn = SquareButton(menuPanel.transform, "Апгрейды", "GREEN", IconCrown, new Vector2(-430, 250), 190);
+        var shopBtn = SquareButton(menuPanel.transform, "Магазин", "BLUE", IconCart, new Vector2(-430, 0), 190);
+        var casesBtn = SquareButton(menuPanel.transform, "Кейсы", "YELLOW", IconGem, new Vector2(-430, -250), 190);
+        var lvlBtn = SquareButton(menuPanel.transform, "Уровни", "BLUE", IconHome, new Vector2(430, 250), 190);
+        var setBtn = SquareButton(menuPanel.transform, "Настройки", "GREY", IconGear, new Vector2(430, 0), 190);
+
+        // Большая кнопка «ЗАБЕГ» снизу
+        var playBtn = IconButton(menuPanel.transform, "ЗАБЕГ", "GREEN", IconPlay, new Vector2(0, -780), new Vector2(620, 180), 56);
+
         SetRef(menu, "_coinsText", coinsMenu);
         SetRef(menu, "_crystalsText", gemMenu);
         SetRef(menu, "_levelText", levelMenu);
-        Wire(playBtn, menu.OnPlay); Wire(shopBtn, menu.OnShop); Wire(setBtn, menu.OnSettings);
+        Wire(playBtn, menu.OnPlay);
+        Wire(upgBtn, menu.OnUpgrades); Wire(shopBtn, menu.OnShop); Wire(casesBtn, menu.OnCases);
+        Wire(lvlBtn, menu.OnLevelSelect); Wire(setBtn, menu.OnSettings);
         refs.menu = menu;
 
         // ---------- DEFEAT ----------
@@ -499,6 +514,7 @@ public static class RunnerSceneBuilder
         SetRef(defeat, "_resultText", defResult);
         SetRef(defeat, "_continueButton", contBtn.gameObject);
         SetRef(defeat, "_doubleButton", defDouble.gameObject);
+        SetRef(defeat, "_slideRect", defCard.GetComponent<RectTransform>());
         Wire(contBtn, defeat.OnContinue); Wire(defDouble, defeat.OnDouble); Wire(retryBtn, defeat.OnRetry); Wire(defHome, defeat.OnMenu);
         refs.defeat = defeat;
 
@@ -515,6 +531,7 @@ public static class RunnerSceneBuilder
         var vicHome = IconButton(vicCard.transform, "В меню", "GREY", IconHome, new Vector2(0, -370), new Vector2(560, 110), 36);
         SetRef(victory, "_resultText", vicResult);
         SetRef(victory, "_doubleButton", x2Btn.gameObject);
+        SetRef(victory, "_slideRect", vicCard.GetComponent<RectTransform>());
         Wire(nextBtn, victory.OnNext); Wire(x2Btn, victory.OnDouble); Wire(vicHome, victory.OnMenu);
         refs.victory = victory;
 
@@ -545,6 +562,7 @@ public static class RunnerSceneBuilder
         SetRefArray(upg, "_levelTexts", lvlTexts);
         SetRefArray(upg, "_costTexts", costTexts);
         SetRef(upg, "_coinsText", upgCoins);
+        SetRef(upg, "_slideRect", upgCard.GetComponent<RectTransform>());
         Wire(buyBtns[0], upg.OnBuyDamage); Wire(buyBtns[1], upg.OnBuyStartUnits);
         Wire(buyBtns[2], upg.OnBuyFireRate); Wire(buyBtns[3], upg.OnBuyVolley);
         var freeBtn = IconButton(upgCard.transform, "Бесплатно (реклама)", "YELLOW", null, new Vector2(0, -480), new Vector2(720, 120), 36);
@@ -568,8 +586,17 @@ public static class RunnerSceneBuilder
         var setMenu = IconButton(setCard.transform, "В меню", "GREY", IconHome, new Vector2(220, -300), new Vector2(380, 110), 34);
         SetRef(settings, "_music", musicSlider);
         SetRef(settings, "_sfx", sfxSlider);
+        SetRef(settings, "_slideRect", setCard.GetComponent<RectTransform>());
         Wire(setClose, settings.OnClose); Wire(setMenu, settings.OnMenu);
         refs.settings = settings;
+
+        // ---------- SHOP (IAP) / CASES / LEVEL SELECT — каркасы (контент в Стадии 3) ----------
+        refs.shop = BuildStubOverlay<ShopUI>(root, "Shop", "МАГАЗИН",
+            new[] { "Стартовые бонусы", "Скины", "Кейсы", "Отключить рекламу" });
+        refs.cases = BuildStubOverlay<CasesUI>(root, "Cases", "КЕЙСЫ",
+            new[] { "Открыть за монеты", "Открыть за кристаллы" });
+        refs.levelSelect = BuildStubOverlay<LevelSelectUI>(root, "LevelSelect", "ВЫБОР УРОВНЕЙ",
+            new[] { "Эпоха 1 — Первобытность", "Эпоха 2 — 🔒", "Эпоха 3 — 🔒", "Эпоха 4 — 🔒" });
 
         hudPanel.SetActive(false);
         defOverlay.SetActive(false); vicOverlay.SetActive(false);
@@ -669,6 +696,45 @@ public static class RunnerSceneBuilder
             label.color = new Color(0.15f, 0.12f, 0.05f);
         }
         return btn;
+    }
+
+    // Квадратная кнопка для бокового меню: иконка сверху, подпись снизу.
+    private static Button SquareButton(Transform parent, string caption, string colorName, string iconPath, Vector2 pos, float size)
+    {
+        var go = new GameObject("Button", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
+        var rt = go.GetComponent<RectTransform>(); rt.SetParent(parent, false);
+        rt.anchorMin = rt.anchorMax = rt.pivot = new Vector2(0.5f, 0.5f);
+        rt.sizeDelta = new Vector2(size, size); rt.anchoredPosition = pos;
+        var img = go.GetComponent<Image>();
+        var sp = LoadSprite(MiniBtn + colorName + ".png");
+        if (sp != null) { img.sprite = sp; img.type = Image.Type.Sliced; img.color = Color.white; }
+        else img.color = new Color(0.25f, 0.5f, 0.85f);
+        var btn = go.AddComponent<Button>();
+
+        if (!string.IsNullOrEmpty(iconPath))
+            Icon(go.transform, iconPath, new Vector2(0, size * 0.14f), new Vector2(size * 0.5f, size * 0.5f), new Vector2(0.5f, 0.5f));
+        var label = Label(go.transform, caption, new Vector2(0, -size * 0.32f), new Vector2(size - 8, 52), 26, TextAnchor.MiddleCenter, new Vector2(0.5f, 0.5f));
+        label.color = new Color(0.15f, 0.12f, 0.05f);
+        return btn;
+    }
+
+    // Каркас оверлея с выезжающей карточкой: заголовок + строки-заглушки + Закрыть/В меню.
+    private static T BuildStubOverlay<T>(Transform root, string name, string title, string[] lines) where T : UIPanel
+    {
+        var overlay = Panel(root, name, new Color(0, 0, 0, 0.6f));
+        var comp = overlay.AddComponent<T>();
+        SetRef(comp, "_root", overlay);
+        var card = SpritePanel(overlay.transform, "Card", PanelDark, new Color(0.14f, 0.16f, 0.26f, 1f));
+        Card(card, new Vector2(900, 1300));
+        Label(card.transform, title, new Vector2(0, 560), new Vector2(820, 100), 56, TextAnchor.MiddleCenter, new Vector2(0.5f, 0.5f));
+        for (int i = 0; i < lines.Length; i++)
+            IconButton(card.transform, lines[i], "BLUE", null, new Vector2(0, 360 - i * 150), new Vector2(740, 120), 32); // заглушки
+        var close = IconButton(card.transform, "Закрыть", "RED", IconClose, new Vector2(-200, -560), new Vector2(400, 110), 34);
+        var toMenu = IconButton(card.transform, "В меню", "GREY", IconHome, new Vector2(220, -560), new Vector2(400, 110), 34);
+        SetRef(comp, "_slideRect", card.GetComponent<RectTransform>());
+        Wire(close, comp.OnClose); Wire(toMenu, comp.OnMenu);
+        overlay.SetActive(false);
+        return comp;
     }
 
     private static Slider SpriteSlider(Transform parent, Vector2 pos, Vector2 size, Vector2 anchor, string bgPath, string fillPath)

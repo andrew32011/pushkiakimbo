@@ -22,6 +22,9 @@ namespace CrowdRunner
         [SerializeField] private VictoryUI _victoryUI;
         [SerializeField] private UpgradeUI _upgradeUI;
         [SerializeField] private SettingsUI _settingsUI;
+        [SerializeField] private ShopUI _shopUI;
+        [SerializeField] private CasesUI _casesUI;
+        [SerializeField] private LevelSelectUI _levelSelectUI;
 
         [Header("Squad base params")]
         [SerializeField] private int _baseStartUnits = 12;
@@ -174,6 +177,16 @@ namespace CrowdRunner
             _victoryUI?.Show(false);
             _upgradeUI?.Show(false);
             _settingsUI?.Show(false);
+            _shopUI?.Show(false);
+            _casesUI?.Show(false);
+            _levelSelectUI?.Show(false);
+
+            // Превью отряда с выбранным оружием за прозрачным меню (отряд стоит — Phase=Menu).
+            if (_squad != null)
+            {
+                _squad.Setup(StartUnits, UnitDamage, FireInterval, Volley, StartWeapon);
+                _camera?.SnapToTarget();
+            }
             OnEconomyChanged?.Invoke();
         }
 
@@ -303,6 +316,9 @@ namespace CrowdRunner
 
         public void OpenUpgrades() { _upgradeUI?.Show(true); PauseForOverlay(true); }
         public void OpenSettings() { _settingsUI?.Show(true); PauseForOverlay(true); }
+        public void OpenShop() { _shopUI?.Show(true); PauseForOverlay(true); }
+        public void OpenCases() { _casesUI?.Show(true); PauseForOverlay(true); }
+        public void OpenLevelSelect() { _levelSelectUI?.Show(true); PauseForOverlay(true); }
         public void CloseOverlay() => PauseForOverlay(false);
 
         // Пауза только во время боя; в меню время и так идёт нормально.

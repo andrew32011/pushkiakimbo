@@ -9,8 +9,9 @@ namespace CrowdRunner
         [SerializeField] private Slider _music;
         [SerializeField] private Slider _sfx;
 
-        private void Awake()
+        protected override void Awake()
         {
+            base.Awake();
             // Слайдеры подписываем в рантайме (персистентные float-листенеры из редактора неудобны).
             if (_music != null) _music.onValueChanged.AddListener(_ => OnVolumeChanged());
             if (_sfx != null) _sfx.onValueChanged.AddListener(_ => OnVolumeChanged());
@@ -39,8 +40,6 @@ namespace CrowdRunner
             YG2.SetFullscreen(!YG2.isFullscreen);
 #endif
         }
-
-        public void OnClose() { Show(false); GM?.CloseOverlay(); }
-        public void OnMenu() { Show(false); GM?.ShowMenu(); }
+        // OnClose/OnMenu — из базового UIPanel.
     }
 }

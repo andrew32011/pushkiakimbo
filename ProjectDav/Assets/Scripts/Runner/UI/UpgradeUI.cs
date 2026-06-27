@@ -39,7 +39,6 @@ namespace CrowdRunner
         public void OnFreeUpgrade() { GM?.GrantFreeUpgrade(); Refresh(); }
         public void OnPrevWeapon() { GM?.CycleStartWeapon(-1); Refresh(); }
         public void OnNextWeapon() { GM?.CycleStartWeapon(1); Refresh(); }
-        public void OnClose() { Show(false); GM?.CloseOverlay(); }
-        public void OnMenu() { Show(false); GM?.ShowMenu(); }
+        // OnClose/OnMenu — из базового UIPanel.
     }
 }

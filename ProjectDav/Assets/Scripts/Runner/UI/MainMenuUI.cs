@@ -19,7 +19,10 @@ namespace CrowdRunner
         }
 
         public void OnPlay() => GM?.StartRun();
-        public void OnShop() => GM?.OpenUpgrades();
+        public void OnUpgrades() => GM?.OpenUpgrades();
+        public void OnShop() => GM?.OpenShop();
+        public void OnCases() => GM?.OpenCases();
+        public void OnLevelSelect() => GM?.OpenLevelSelect();
         public void OnSettings() => GM?.OpenSettings();
     }
 }
