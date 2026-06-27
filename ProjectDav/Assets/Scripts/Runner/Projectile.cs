@@ -10,13 +10,15 @@ namespace CrowdRunner
         private float _speed;
         private float _life;
         private bool _pierce;
+        private Color _color = Color.white;
 
-        public void Launch(float damage, float speed, float life, bool pierce)
+        public void Launch(float damage, float speed, float life, bool pierce, Color color)
         {
             _damage = damage;
             _speed = speed;
             _life = life;
             _pierce = pierce;
+            _color = color;
         }
 
         private void Update()
@@ -31,6 +33,7 @@ namespace CrowdRunner
             var enemy = other.GetComponentInParent<EnemyController>();
             if (enemy == null || enemy.IsDead) return;
             enemy.TakeDamage(_damage);
+            EffectsManager.Burst(transform.position, _color, 0.5f);
             if (!_pierce) Destroy(gameObject);
         }
     }

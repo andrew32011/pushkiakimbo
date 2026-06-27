@@ -17,8 +17,8 @@ namespace CrowdRunner
         [SerializeField] private GameObject[] _weaponModels = new GameObject[4]; // по WeaponType
 
         [Header("Movement")]
-        [SerializeField] private float _runSpeed = 4f;
-        [SerializeField] private float _roadHalfWidth = 3.6f;
+        [SerializeField] private float _runSpeed = 6f;
+        [SerializeField] private float _roadHalfWidth = 4f;
         [SerializeField] private float _strafeSpeed = 10f;
 
         [Header("Formation")]
@@ -114,7 +114,7 @@ namespace CrowdRunner
                     proj.transform.localScale = Vector3.one * _projScale;
                     var rend = proj.GetComponentInChildren<Renderer>();
                     if (rend != null && rend.material != null) rend.material.color = _projColor;
-                    proj.Launch(Damage, _projSpeed, _projLife, _projPierce);
+                    proj.Launch(Damage, _projSpeed, _projLife, _projPierce, _projColor);
                 }
             }
             AudioController.Instance?.PlayShot();
@@ -260,8 +260,8 @@ namespace CrowdRunner
             var gate = other.GetComponentInParent<Gate>();
             if (gate != null) { gate.ApplyTo(this); return; }
 
-            var bonus = other.GetComponentInParent<BonusPickup>();
-            if (bonus != null) { bonus.Collect(this); return; }
+            var gift = other.GetComponentInParent<GiftBox>();
+            if (gift != null) { gift.Collect(this); return; }
 
             var enemy = other.GetComponentInParent<EnemyController>();
             if (enemy != null && !enemy.IsDead && enemy.IsCrowd)
