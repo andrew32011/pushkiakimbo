@@ -36,5 +36,6 @@ namespace CrowdRunner
         public void OnBuyVolley() => Buy(UpgradeType.Volley);
         public void OnFreeUpgrade() { GM?.GrantFreeUpgrade(); Refresh(); }
         public void OnClose() { Show(false); GM?.CloseOverlay(); }
+        public void OnMenu() { Show(false); GM?.ShowMenu(); }
     }
 }

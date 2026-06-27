@@ -151,6 +151,8 @@ namespace CrowdRunner
             _hudUI?.Show(false);
             _defeatUI?.Show(false);
             _victoryUI?.Show(false);
+            _upgradeUI?.Show(false);
+            _settingsUI?.Show(false);
             OnEconomyChanged?.Invoke();
         }
 

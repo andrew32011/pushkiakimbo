@@ -421,16 +421,17 @@ public static class RunnerSceneBuilder
 
     private static UiRefs BuildCanvas()
     {
-        if (Object.FindObjectOfType<UnityEngine.EventSystems.EventSystem>() == null)
-        {
-            var es = new GameObject("EventSystem");
-            es.AddComponent<UnityEngine.EventSystems.EventSystem>();
-            es.AddComponent<UnityEngine.EventSystems.StandaloneInputModule>();
-        }
+        // EventSystem пересоздаём заново, чтобы не остался сломанный/чужой модуль ввода.
+        var oldEs = Object.FindObjectOfType<UnityEngine.EventSystems.EventSystem>();
+        if (oldEs != null) Object.DestroyImmediate(oldEs.gameObject);
+        var esGO = new GameObject("EventSystem");
+        esGO.AddComponent<UnityEngine.EventSystems.EventSystem>();
+        esGO.AddComponent<UnityEngine.EventSystems.StandaloneInputModule>();
 
         var canvasGO = new GameObject(CanvasName);
         var canvas = canvasGO.AddComponent<Canvas>();
         canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+        canvas.sortingOrder = 100; // поверх возможных рантайм-оверлеев SDK, чтобы UI ловил клики
         var scaler = canvasGO.AddComponent<CanvasScaler>();
         scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
         scaler.referenceResolution = new Vector2(1080, 1920);
@@ -451,8 +452,8 @@ public static class RunnerSceneBuilder
         var progress = SpriteSlider(hudPanel.transform, new Vector2(0, -140), new Vector2(760, 44), new Vector2(0.5f, 1), ProgBg, ProgFill);
         progress.interactable = false; progress.value = 0f;
         // кнопки доступа во время боя (низ-лево)
-        var shopHud = IconButton(hudPanel.transform, "", "BLUE", IconCart, new Vector2(-430, -820), new Vector2(120, 120), 30);
-        var setHud = IconButton(hudPanel.transform, "", "GREY", IconGear, new Vector2(-430, -680), new Vector2(120, 120), 30);
+        var shopHud = IconButton(hudPanel.transform, "Магазин", "BLUE", IconCart, new Vector2(-340, -820), new Vector2(320, 120), 32);
+        var setHud = IconButton(hudPanel.transform, "Настройки", "GREY", IconGear, new Vector2(-340, -690), new Vector2(320, 120), 32);
         SetRef(hud, "_coinsText", coinsHud);
         SetRef(hud, "_unitsText", unitsHud);
         SetRef(hud, "_levelText", levelHud);
@@ -534,8 +535,9 @@ public static class RunnerSceneBuilder
         Wire(buyBtns[0], upg.OnBuyDamage); Wire(buyBtns[1], upg.OnBuyStartUnits);
         Wire(buyBtns[2], upg.OnBuyFireRate); Wire(buyBtns[3], upg.OnBuyVolley);
         var freeBtn = IconButton(upgCard.transform, "Бесплатно (реклама)", "YELLOW", null, new Vector2(0, -480), new Vector2(720, 120), 36);
-        var upgClose = IconButton(upgCard.transform, "Закрыть", "RED", IconClose, new Vector2(0, -620), new Vector2(520, 110), 38);
-        Wire(freeBtn, upg.OnFreeUpgrade); Wire(upgClose, upg.OnClose);
+        var upgClose = IconButton(upgCard.transform, "Закрыть", "RED", IconClose, new Vector2(-210, -630), new Vector2(440, 110), 34);
+        var upgMenu = IconButton(upgCard.transform, "В меню", "GREY", IconHome, new Vector2(250, -630), new Vector2(420, 110), 34);
+        Wire(freeBtn, upg.OnFreeUpgrade); Wire(upgClose, upg.OnClose); Wire(upgMenu, upg.OnMenu);
         refs.upgrade = upg;
 
         // ---------- SETTINGS ----------
@@ -549,10 +551,11 @@ public static class RunnerSceneBuilder
         var musicSlider = SpriteSlider(setCard.transform, new Vector2(0, 100), new Vector2(640, 44), new Vector2(0.5f, 0.5f), ProgBg, ProgFill);
         Label(setCard.transform, "Звуки", new Vector2(0, -20), new Vector2(700, 60), 36, TextAnchor.MiddleCenter, new Vector2(0.5f, 0.5f));
         var sfxSlider = SpriteSlider(setCard.transform, new Vector2(0, -90), new Vector2(640, 44), new Vector2(0.5f, 0.5f), ProgBg, ProgFill);
-        var setClose = IconButton(setCard.transform, "Закрыть", "RED", IconClose, new Vector2(0, -300), new Vector2(520, 110), 38);
+        var setClose = IconButton(setCard.transform, "Закрыть", "RED", IconClose, new Vector2(-180, -300), new Vector2(380, 110), 34);
+        var setMenu = IconButton(setCard.transform, "В меню", "GREY", IconHome, new Vector2(220, -300), new Vector2(380, 110), 34);
         SetRef(settings, "_music", musicSlider);
         SetRef(settings, "_sfx", sfxSlider);
-        Wire(setClose, settings.OnClose);
+        Wire(setClose, settings.OnClose); Wire(setMenu, settings.OnMenu);
         refs.settings = settings;
 
         hudPanel.SetActive(false);

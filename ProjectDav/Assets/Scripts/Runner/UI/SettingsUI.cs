@@ -41,5 +41,6 @@ namespace CrowdRunner
         }
 
         public void OnClose() { Show(false); GM?.CloseOverlay(); }
+        public void OnMenu() { Show(false); GM?.ShowMenu(); }
     }
 }
