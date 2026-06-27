@@ -17,7 +17,7 @@ namespace CrowdRunner
         [SerializeField] private GameObject[] _weaponModels = new GameObject[4]; // по WeaponType
 
         [Header("Movement")]
-        [SerializeField] private float _runSpeed = 4f;
+        [SerializeField] private float _runSpeed = 0f; // отряд стоит на месте и отстреливается
         [SerializeField] private float _roadHalfWidth = 7f; // включает боковые дорожки (бонусы)
         [SerializeField] private float _strafeSpeed = 10f;
 
@@ -144,13 +144,13 @@ namespace CrowdRunner
             switch (weapon)
             {
                 case WeaponType.Melee:
-                    _projSpeed = 13f; _projLife = 0.45f; _projScale = 0.28f; _dmgMul = 1f; _projPierce = false; _projColor = new Color(0.6f, 0.6f, 0.6f); break;
+                    _projSpeed = 13f; _projLife = 1.35f; _projScale = 0.28f; _dmgMul = 1f; _projPierce = false; _projColor = new Color(0.6f, 0.6f, 0.6f); break;
                 case WeaponType.Bow:
-                    _projSpeed = 22f; _projLife = 1.3f; _projScale = 0.18f; _dmgMul = 1.6f; _projPierce = false; _projColor = new Color(0.85f, 0.75f, 0.45f); break;
+                    _projSpeed = 22f; _projLife = 3.9f; _projScale = 0.18f; _dmgMul = 1.6f; _projPierce = false; _projColor = new Color(0.85f, 0.75f, 0.45f); break;
                 case WeaponType.Musket:
-                    _projSpeed = 30f; _projLife = 1.7f; _projScale = 0.2f; _dmgMul = 2.6f; _projPierce = false; _projColor = new Color(0.7f, 0.75f, 0.85f); break;
+                    _projSpeed = 30f; _projLife = 5.1f; _projScale = 0.2f; _dmgMul = 2.6f; _projPierce = false; _projColor = new Color(0.7f, 0.75f, 0.85f); break;
                 case WeaponType.Rifle:
-                    _projSpeed = 40f; _projLife = 2.2f; _projScale = 0.16f; _dmgMul = 4f; _projPierce = true; _projColor = new Color(1f, 0.85f, 0.2f); break;
+                    _projSpeed = 40f; _projLife = 6.6f; _projScale = 0.16f; _dmgMul = 4f; _projPierce = true; _projColor = new Color(1f, 0.85f, 0.2f); break;
             }
             EquipWeaponModels();
             RunnerGameManager.Instance?.RefreshHud();

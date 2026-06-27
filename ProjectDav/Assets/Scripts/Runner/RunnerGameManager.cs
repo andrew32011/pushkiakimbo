@@ -24,10 +24,10 @@ namespace CrowdRunner
         [SerializeField] private SettingsUI _settingsUI;
 
         [Header("Squad base params")]
-        [SerializeField] private int _baseStartUnits = 5;
+        [SerializeField] private int _baseStartUnits = 12;
         [SerializeField] private float _baseDamage = 2f;
         [SerializeField] private float _damagePerLevel = 1f;
-        [SerializeField] private float _baseFireInterval = 0.4f;
+        [SerializeField] private float _baseFireInterval = 0.16f;
         [SerializeField] private float _fireRateStep = 0.12f;
 
         [Header("Upgrade economy")]

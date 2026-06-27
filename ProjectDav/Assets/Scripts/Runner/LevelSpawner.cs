@@ -3,13 +3,10 @@ using UnityEngine;
 
 namespace CrowdRunner
 {
-    // Генерирует длинный уровень: пары ворот (±×÷), боковые бустеры, подарки,
-    // толпы врагов, мини-босс в середине и большой босс в конце.
+    // Отряд стоит на месте. Волны орд накатывают по центральной дорожке во времени,
+    // бонусы (юниты/оружие) по одному выезжают по боковым дорожкам и встают в очередь.
     public class LevelSpawner : MonoBehaviour
     {
-        private enum EvType { GatePair, Crowd, MiniBoss, BigBoss, WeaponPickup, BoosterRow, Gift }
-        private struct Ev { public float z; public EvType type; }
-
         [Header("Prefabs")]
         [SerializeField] private Gate _gatePrefab;
         [SerializeField] private EnemyController _enemyPrefab;
@@ -19,97 +16,91 @@ namespace CrowdRunner
         [Header("Refs")]
         [SerializeField] private Transform _squad;
 
-        [Header("Layout (длинный уровень)")]
-        [SerializeField] private int _segmentsBase = 70;
-        [SerializeField] private float _startZ = 14f;
-        [SerializeField] private float _segment = 13f;
-        [SerializeField] private float _laneX = 2.3f;
-        [SerializeField] private float _sideX = 5.2f;
-        [SerializeField] private float _spawnAhead = 40f;
+        [Header("Волны врагов")]
+        [SerializeField] private int _wavesBase = 14;         // число волн (растёт с уровнем)
+        [SerializeField] private float _waveInterval = 3.5f;  // пауза между волнами
+        [SerializeField] private float _spawnDistance = 45f;  // где появляются враги/бонусы впереди
+        [SerializeField] private float _laneHalfWidth = 4f;   // ширина центральной дорожки
+        [SerializeField] private float _unitSpacing = 0.9f;
 
-        [Header("Боковые бонусы (две боковые дорожки)")]
-        [SerializeField] private float _sideLaneX = 6f;      // x двух боковых дорожек
-        [SerializeField] private float _boosterGap = 3.5f;   // дистанция между бонусами в очереди
-        [SerializeField] private float _boosterHp = 14f;
-        [SerializeField] private float _boosterSpeed = 3.5f;
-        [SerializeField] private float _boosterStop = 6f;    // дистанция остановки перед игроком
-
-        [Header("Difficulty")]
+        [Header("Орда")]
         [SerializeField] private float _crowdHpPerUnit = 4f;
         [SerializeField] private int _crowdBase = 18;
         [SerializeField] private int _crowdMaxPerWave = 45;
         [SerializeField] private float _enemySpeed = 2.6f;
-        [SerializeField] private float _enemyStop = 2.2f;        // дистанция остановки перед отрядом
+        [SerializeField] private float _enemyStop = 2.2f;        // встаёт перед отрядом
         [SerializeField] private int _enemyContactDamage = 1;
         [SerializeField] private float _enemyHitInterval = 1.5f;
 
+        [Header("Бонусы (боковые дорожки, по одному)")]
+        [SerializeField] private float _sideLaneX = 6f;
+        [SerializeField] private float _boosterInterval = 2.0f; // как часто выезжает новый блок
+        [SerializeField] private float _boosterGap = 2.2f;      // дистанция в очереди
+        [SerializeField] private float _boosterHp = 14f;
+        [SerializeField] private float _boosterSpeed = 3.5f;
+        [SerializeField] private float _boosterStop = 5f;       // где встаёт головной блок
+        [SerializeField] private float _weaponChance = 0.18f;   // шанс, что блок — оружие
+
         [Header("Colors")]
-        [SerializeField] private Color _good = new Color(0.3f, 0.8f, 0.4f);
-        [SerializeField] private Color _good2 = new Color(0.3f, 0.6f, 1f);
-        [SerializeField] private Color _bad = new Color(0.85f, 0.25f, 0.25f);
-        [SerializeField] private Color _gold = new Color(1f, 0.82f, 0.2f);
         [SerializeField] private Color _enemyColor = new Color(0.8f, 0.25f, 0.25f);
         [SerializeField] private Color _bossColor = new Color(0.55f, 0.15f, 0.6f);
 
-        private readonly List<Ev> _events = new List<Ev>();
         private readonly List<EnemyController> _alive = new List<EnemyController>();
-        private int _index, _level;
-        private float _totalLength = 1f;
-        private bool _bossDefeated, _allSpawned, _running;
+        private int _waveTotal, _waveIndex, _level;
+        private float _waveTimer, _boosterTimer;
+        private bool _boosterLeft, _bossSpawned, _bossDefeated, _running;
         private EnemyController _bigBoss;
 
-        public float Progress01
-        {
-            get
-            {
-                if (_squad == null || _totalLength <= 0f) return 0f;
-                return Mathf.Clamp01(_squad.position.z / _totalLength);
-            }
-        }
+        public float Progress01 => _waveTotal > 0 ? Mathf.Clamp01((float)_waveIndex / _waveTotal) : 0f;
 
         public void BeginLevel(int level)
         {
             _level = Mathf.Max(1, level);
-            _events.Clear();
             ClearAllEnemies();
-            _index = 0; _bossDefeated = false; _allSpawned = false; _bigBoss = null;
-
-            int segments = _segmentsBase + _level * 6;
-            int mid = segments / 2;
-            float z = _startZ;
-
-            for (int i = 0; i < segments; i++)
-            {
-                EvType t;
-                if (i == mid) t = EvType.MiniBoss;
-                else if (i > 0 && i % 9 == 0) t = EvType.WeaponPickup; // оружие оставляем
-                else t = EvType.Crowd;                                  // всё остальное — орды
-                _events.Add(new Ev { z = z, type = t });
-
-                // бонусы едут по боковым дорожкам (часто, по обоим краям)
-                if (i > 1 && i % 3 == 0) _events.Add(new Ev { z = z + _segment * 0.3f, type = EvType.BoosterRow });
-
-                z += _segment;
-            }
-            z += _segment;
-            _events.Add(new Ev { z = z, type = EvType.BigBoss });
-
-            _totalLength = z + 6f;
+            _waveTotal = _wavesBase + _level * 3;
+            _waveIndex = 0;
+            _waveTimer = 1.0f;   // первая волна почти сразу
+            _boosterTimer = 0.5f;
+            _bossSpawned = _bossDefeated = false;
+            _bigBoss = null;
             _running = true;
         }
 
         private void Update()
         {
             if (!_running || _squad == null) return;
+            var gm = RunnerGameManager.Instance;
+            if (gm == null || gm.Phase != GamePhase.Running) return;
 
-            while (_index < _events.Count && _squad.position.z >= _events[_index].z - _spawnAhead)
+            // волны орд по таймеру
+            if (_waveIndex < _waveTotal)
             {
-                Spawn(_events[_index]);
-                _index++;
+                _waveTimer -= Time.deltaTime;
+                if (_waveTimer <= 0f)
+                {
+                    _waveTimer = _waveInterval;
+                    if (_waveIndex == _waveTotal / 2) SpawnBoss(false);
+                    else SpawnCrowd();
+                    _waveIndex++;
+                }
             }
-            if (_index >= _events.Count) _allSpawned = true;
+            else if (!_bossSpawned)
+            {
+                _bossSpawned = true;
+                SpawnBoss(true);
+            }
 
-            if (_allSpawned && _bossDefeated && _alive.Count == 0)
+            // поток бонусов по краям (по одному, поочерёдно слева/справа)
+            _boosterTimer -= Time.deltaTime;
+            if (_boosterTimer <= 0f)
+            {
+                _boosterTimer = _boosterInterval;
+                SpawnBoosterBlock(_boosterLeft ? -_sideLaneX : _sideLaneX);
+                _boosterLeft = !_boosterLeft;
+            }
+
+            bool allSpawned = _waveIndex >= _waveTotal && _bossSpawned;
+            if (allSpawned && _bossDefeated && _alive.Count == 0)
             {
                 _running = false;
                 AudioController.Instance?.PlayWin();
@@ -117,68 +108,23 @@ namespace CrowdRunner
             }
         }
 
-        private void Spawn(Ev ev)
-        {
-            switch (ev.type)
-            {
-                case EvType.GatePair: SpawnGatePair(ev.z); break;
-                case EvType.Crowd: SpawnCrowd(ev.z); break;
-                case EvType.WeaponPickup: SpawnWeaponPickup(ev.z); break;
-                case EvType.MiniBoss: SpawnBoss(ev.z, false); break;
-                case EvType.BigBoss: SpawnBoss(ev.z, true); break;
-                case EvType.BoosterRow: SpawnBoosterRow(ev.z); break;
-            }
-        }
-
-        private void SpawnGatePair(float z)
-        {
-            if (_gatePrefab == null) return;
-            var left = Instantiate(_gatePrefab, new Vector3(-_laneX, 0f, z), Quaternion.identity);
-            var right = Instantiate(_gatePrefab, new Vector3(_laneX, 0f, z), Quaternion.identity);
-
-            // одна сторона хорошая, другая может быть хуже/плохой
-            ConfigGate(left, true);
-            ConfigGate(right, Random.value < 0.5f);
-            left.SetPair(right); right.SetPair(left);
-        }
-
-        private void ConfigGate(Gate g, bool good)
-        {
-            if (good)
-            {
-                if (Random.value < 0.4f) g.Init(GateOp.Multiply, Random.Range(2, 4), _good2);
-                else g.Init(GateOp.Add, Random.Range(8, 20 + _level * 2), _good);
-            }
-            else
-            {
-                if (Random.value < 0.5f) g.Init(GateOp.Subtract, Random.Range(8, 18), _bad);
-                else g.Init(GateOp.Divide, 2, _bad);
-            }
-        }
-
-        private void SpawnWeaponPickup(float z)
-        {
-            if (_gatePrefab == null) return;
-            var g = Instantiate(_gatePrefab, new Vector3(0f, 0f, z), Quaternion.identity);
-            g.InitWeaponPickup(_gold);
-        }
-
-        private void SpawnCrowd(float z)
+        // Орда заполняет всю центральную дорожку и движется на отряд.
+        private void SpawnCrowd()
         {
             if (_enemyPrefab == null) return;
-            int count = _crowdBase + _level * 2 + Random.Range(0, 5 + _level);
-            count = Mathf.Clamp(count, 4, _crowdMaxPerWave);
+            int count = Mathf.Clamp(_crowdBase + _level * 2 + Random.Range(0, 5 + _level), 4, _crowdMaxPerWave);
+            int perRow = Mathf.Max(1, Mathf.FloorToInt(_laneHalfWidth * 2f / _unitSpacing));
+            float baseZ = _squad.position.z + _spawnDistance;
 
-            // Орда: множество отдельных врагов рядами поперёк дороги, каждый = 1 юнит.
-            const int perRow = 5;
-            for (int i = 0; i < count; i++)
+            for (int k = 0; k < count; k++)
             {
-                int row = i / perRow;
-                int col = i % perRow;
+                int row = k / perRow;
+                int col = k % perRow;
                 int rowCount = Mathf.Min(perRow, count - row * perRow);
-                float x = (col - (rowCount - 1) * 0.5f) * 0.9f + Random.Range(-0.12f, 0.12f);
-                float ez = z + row * 1.1f + Random.Range(-0.2f, 0.2f);
-                var e = Instantiate(_enemyPrefab, new Vector3(x, 0f, ez), Quaternion.identity);
+                float x = (col - (rowCount - 1) * 0.5f) * _unitSpacing + Random.Range(-0.1f, 0.1f);
+                x = Mathf.Clamp(x, -_laneHalfWidth, _laneHalfWidth);
+                float z = baseZ + row * _unitSpacing + Random.Range(-0.2f, 0.2f);
+                var e = Instantiate(_enemyPrefab, new Vector3(x, 0f, z), Quaternion.identity);
                 e.transform.localScale = Vector3.one;
                 e.InitCrowd(this, 1, 1 + _level, _enemySpeed, _crowdHpPerUnit,
                             _enemyContactDamage, _enemyHitInterval, _enemyStop, _enemyColor);
@@ -186,38 +132,29 @@ namespace CrowdRunner
             }
         }
 
-        private void SpawnBoss(float z, bool big)
+        private void SpawnBoss(bool big)
         {
             if (_enemyPrefab == null) return;
             float hp = (big ? 400f : 140f) * (1f + _level * 0.4f);
             int bonus = big ? Random.Range(30, 51) : Random.Range(15, 26);
             int contactDmg = big ? 6 + _level : 4 + _level / 2;
+            float z = _squad.position.z + _spawnDistance;
             var boss = Instantiate(_enemyPrefab, new Vector3(0f, 0f, z), Quaternion.identity);
             boss.transform.localScale = Vector3.one * (big ? 2.8f : 1.9f);
-            boss.InitBoss(this, hp, (1 + _level) * (big ? 5 : 3), _enemySpeed * 0.6f, bonus, contactDmg, big ? 0.5f : 0.6f, _bossColor);
+            boss.InitBoss(this, hp, (1 + _level) * (big ? 5 : 3), _enemySpeed * 0.7f, bonus, contactDmg, big ? 0.5f : 0.6f, _bossColor);
             _alive.Add(boss);
             if (big) _bigBoss = boss;
         }
 
-        // Бонусы едут по ОБЕИМ боковым дорожкам и встают в очередь перед игроком.
-        // Игрок не успеет собрать всё — приходится выбирать между бонусами и ордой.
-        private void SpawnBoosterRow(float z)
+        // Один блок-бонус на боковую дорожку: либо юниты, либо оружие.
+        private void SpawnBoosterBlock(float x)
         {
             if (_boosterPrefab == null) return;
-            SpawnBoosterLane(-_sideLaneX, z);
-            SpawnBoosterLane(_sideLaneX, z);
-        }
-
-        private void SpawnBoosterLane(float x, float z)
-        {
-            int n = Random.Range(3, 6);
+            float z = _squad.position.z + _spawnDistance;
+            var b = Instantiate(_boosterPrefab, new Vector3(x, 0f, z), Quaternion.identity);
             float hp = _boosterHp + _level * 2f;
-            for (int i = 0; i < n; i++)
-            {
-                var b = Instantiate(_boosterPrefab, new Vector3(x, 0f, z + i * _boosterGap), Quaternion.identity);
-                // чем дальше в ряду — тем дальше встаёт, чтобы выстроиться друг за другом
-                b.Init(Random.Range(4, 10), hp, _boosterSpeed, _boosterStop + i * _boosterGap);
-            }
+            if (Random.value < _weaponChance) b.InitWeapon(hp, _boosterSpeed, _boosterStop, _boosterGap);
+            else b.Init(Random.Range(4, 10), hp, _boosterSpeed, _boosterStop, _boosterGap);
         }
 
         public void NotifyEnemyRemoved(EnemyController e)
