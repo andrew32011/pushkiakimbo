@@ -61,17 +61,20 @@ namespace CrowdRunner
         private void OnEnable() { YG2.onGetSDKData += OnSdkData; }
         private void OnDisable() { YG2.onGetSDKData -= OnSdkData; }
 
+        private bool _autoStarted;
+
         private void Start()
         {
-            ShowMenu();
+            // Меню пока отключено — игра должна стартовать сразу после запуска в Unity.
             if (YG2.isSDKEnabled) OnSdkData();
         }
 
         private void OnSdkData()
         {
             ApplyVolumes();
-            if (Phase == GamePhase.Menu) ShowMenu();
             OnEconomyChanged?.Invoke();
+            // Сразу запускаем забег, минуя главное меню (один раз).
+            if (!_autoStarted) { _autoStarted = true; StartRun(); }
         }
 
         // ---------- Экономика ----------
@@ -145,7 +148,7 @@ namespace CrowdRunner
         {
             Phase = GamePhase.Menu;
             Time.timeScale = 1f;
-            if (_input != null) _input.Locked = true;
+            //if (_input != null) _input.Locked = true;
             _menuUI?.Show(true);
             _hudUI?.Show(false);
             _defeatUI?.Show(false);
