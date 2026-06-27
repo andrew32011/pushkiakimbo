@@ -11,17 +11,36 @@ namespace CrowdRunner
 
         private float _hp, _maxHp;
         private int _bonus = 5;
+        private float _speed = 5f;
+        private float _stopDist = 6f;   // на каком расстоянии перед игроком встаёт (очередь)
         private bool _dead;
 
         public bool IsDead => _dead;
 
-        public void Init(int bonus, float hp)
+        public void Init(int bonus, float hp, float speed, float stopDist)
         {
             _bonus = Mathf.Max(1, bonus);
             _maxHp = _hp = Mathf.Max(1f, hp);
+            _speed = speed;
+            _stopDist = stopDist;
             _dead = false;
             UpdateLabel();
             if (_zone != null) _zone.isTrigger = true;
+        }
+
+        private void Update()
+        {
+            if (_dead) return;
+            var gm = RunnerGameManager.Instance;
+            if (gm == null || gm.Phase != GamePhase.Running) return;
+            var squad = gm.Squad;
+            if (squad == null) return;
+
+            // едем навстречу игроку по боковой дорожке и встаём в очередь, не проходя мимо
+            Vector3 p = transform.position;
+            float stopZ = squad.Center.z + _stopDist;
+            p.z = Mathf.Max(p.z - _speed * Time.deltaTime, stopZ);
+            transform.position = p;
         }
 
         // Урон от снарядов отряда.

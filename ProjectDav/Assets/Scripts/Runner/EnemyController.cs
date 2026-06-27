@@ -22,7 +22,8 @@ namespace CrowdRunner
         private int _contactDamage;
         private float _hitInterval = 0.5f;
         private float _hitTimer;
-        private bool _engaged;   // босс вступил в бой — отряд встал
+        private bool _engaged;   // вступил в бой
+        private float _stopDist = 1.5f; // на каком расстоянии перед отрядом встаёт
 
         public bool IsDead { get; private set; }
         public bool IsBoss => _isBoss;
@@ -30,11 +31,14 @@ namespace CrowdRunner
         public int Level => _level;
         public int CrowdCount => Mathf.Max(1, Mathf.CeilToInt(_hp / _hpPerUnit));
 
-        public void InitCrowd(LevelSpawner spawner, int count, int level, float speed, float hpPerUnit, Color tint)
+        public void InitCrowd(LevelSpawner spawner, int count, int level, float speed, float hpPerUnit, int contactDamage, float hitInterval, float stopDist, Color tint)
         {
             _spawner = spawner; _isBoss = false; _level = level; _speed = speed;
             _hpPerUnit = Mathf.Max(1f, hpPerUnit);
             _maxHp = _hp = count * _hpPerUnit;
+            _contactDamage = Mathf.Max(1, contactDamage);
+            _hitInterval = Mathf.Max(0.2f, hitInterval);
+            _stopDist = stopDist;
             Tint(tint);
             if (_hpBarFill != null) _hpBarFill.gameObject.SetActive(false);
             if (_label != null) _label.gameObject.SetActive(count > 1); // у орды из одиночек цифру не показываем
@@ -45,6 +49,7 @@ namespace CrowdRunner
         {
             _spawner = spawner; _isBoss = true; _level = level; _speed = speed;
             _maxHp = _hp = hp; _bonusUnits = bonusUnits; _contactDamage = contactDamage; _hitInterval = hitInterval;
+            _stopDist = 1.2f;
             Tint(tint);
             UpdateLabel();
             UpdateHpBar();
@@ -63,32 +68,33 @@ namespace CrowdRunner
             var gm = RunnerGameManager.Instance;
             if (gm == null || gm.Phase != GamePhase.Running) return;
 
-            // движение навстречу + наведение на отряд по X (не проходят мимо)
-            Vector3 pos = transform.position;
-            pos.z -= _speed * Time.deltaTime;
             var squad = gm.Squad;
-            if (squad != null)
+            Vector3 pos = transform.position;
+
+            // движемся навстречу, но НЕ проходим мимо игрока — встаём на _stopDist перед ним
+            float stopZ = squad != null ? squad.Center.z + _stopDist : float.NegativeInfinity;
+            pos.z = Mathf.Max(pos.z - _speed * Time.deltaTime, stopZ);
+            // наведение по X пока не вступили в бой (чтобы орда не схлопывалась в точку)
+            if (squad != null && !_engaged)
                 pos.x = Mathf.MoveTowards(pos.x, squad.Center.x, _homingSpeed * Time.deltaTime);
             transform.position = pos;
 
-            // босс бьёт отряд вблизи периодически
-            if (_isBoss && squad != null)
+            if (squad == null) return;
+
+            // вблизи отряда: встаём в бой и периодически отнимаем юнитов
+            bool near = (transform.position.z - squad.Center.z) <= _stopDist + 0.35f;
+            if (near)
             {
-                float dz = transform.position.z - squad.Center.z;
-                if (dz < 1.8f)
+                if (!_engaged)
                 {
-                    if (!_engaged) { _engaged = true; squad.StopRunning(); } // стоп: бой с боссом
-                    _hitTimer -= Time.deltaTime;
-                    if (_hitTimer <= 0f)
-                    {
-                        _hitTimer = _hitInterval;
-                        squad.RemoveUnits(_contactDamage);
-                    }
-                    // босс не проходит сквозь отряд
-                    if (transform.position.z < squad.Center.z + 1.2f)
-                    {
-                        var p = transform.position; p.z = squad.Center.z + 1.2f; transform.position = p;
-                    }
+                    _engaged = true;
+                    if (_isBoss) squad.StopRunning(); // на боссе отряд останавливается
+                }
+                _hitTimer -= Time.deltaTime;
+                if (_hitTimer <= 0f)
+                {
+                    _hitTimer = _hitInterval;
+                    squad.RemoveUnits(_contactDamage);
                 }
             }
         }
