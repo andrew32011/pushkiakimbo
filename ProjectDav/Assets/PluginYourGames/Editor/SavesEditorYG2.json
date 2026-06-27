@@ -1,0 +1,24 @@
+{
+    "intExample": 5,
+    "strExample": "Hello!",
+    "boolExample": [
+        false,
+        false,
+        false,
+        false
+    ],
+    "idSave": 2,
+    "coins": 196,
+    "crystals": 22,
+    "epochUnlocked": 1,
+    "epochSelected": 0,
+    "upgDamage": 0,
+    "upgStartUnits": 0,
+    "upgFireRate": 0,
+    "upgVolley": 0,
+    "startWeapon": 0,
+    "musicVolume": 1.0,
+    "sfxVolume": 1.0,
+    "adsDisabled": false,
+    "tutorialDone": false
+}
