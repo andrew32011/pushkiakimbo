@@ -2,59 +2,64 @@ using UnityEngine;
 
 namespace CrowdRunner
 {
-    // Ворота на полосе. Левая полоса — оружие/урон, правая — пополнение отряда.
+    // Ворота-модификатор числа юнитов (главная механика). Ставятся парами.
     public class Gate : MonoBehaviour
     {
         [SerializeField] private TextMesh _label;
         [SerializeField] private Renderer _background;
 
-        private GateType _type;
         private GateOp _op;
         private int _value;
-        private bool _isWeaponSwap;
-        private WeaponType _weapon;
+        private bool _isWeaponPickup;
+        private Gate _pair;
         private bool _consumed;
 
-        public void Init(GateType type, GateOp op, int value, bool weaponSwap, WeaponType weapon, Color color)
+        public void Init(GateOp op, int value, Color color)
         {
-            _type = type;
-            _op = op;
-            _value = value;
-            _isWeaponSwap = weaponSwap;
-            _weapon = weapon;
-            _consumed = false;
-
+            _op = op; _value = value; _isWeaponPickup = false; _consumed = false;
             if (_background != null && _background.material != null) _background.material.color = color;
-            if (_label != null) _label.text = LabelText();
+            if (_label != null) { _label.text = LabelText(); _label.transform.rotation = Quaternion.Euler(0f, 180f, 0f); }
         }
+
+        // Ворота-апгрейд оружия (золотое оружие).
+        public void InitWeaponPickup(Color color)
+        {
+            _isWeaponPickup = true; _consumed = false;
+            if (_background != null && _background.material != null) _background.material.color = color;
+            if (_label != null) { _label.text = "ОРУЖИЕ"; _label.transform.rotation = Quaternion.Euler(0f, 180f, 0f); }
+        }
+
+        public void SetPair(Gate pair) => _pair = pair;
 
         private string LabelText()
         {
-            if (_isWeaponSwap) return _weapon.ToString().ToUpper();
-            string sign = _op == GateOp.Multiply ? "x" : (_op == GateOp.Subtract ? "-" : "+");
-            return sign + _value;
+            switch (_op)
+            {
+                case GateOp.Add: return "+" + _value;
+                case GateOp.Multiply: return "x" + _value;
+                case GateOp.Subtract: return "-" + _value;
+                case GateOp.Divide: return "÷" + _value;
+            }
+            return _value.ToString();
         }
 
-        // Вызывается сенсором отряда.
         public void ApplyTo(SquadController squad)
         {
             if (_consumed) return;
             _consumed = true;
+            if (_pair != null) _pair.Consume();
 
-            if (_isWeaponSwap)
-            {
-                squad.SetWeapon(_weapon);
-            }
-            else if (_type == GateType.Weapon)
-            {
-                squad.ModifyDamage(_op, _value);
-            }
-            else // Units
-            {
-                squad.ModifyUnits(_op, _value);
-            }
+            if (_isWeaponPickup) squad.UpgradeWeapon();
+            else squad.ModifyUnits(_op, _value);
 
             AudioController.Instance?.PlayGate();
+            EffectsManager.Burst(transform.position + Vector3.up * 1.2f, new Color(0.6f, 0.9f, 1f), 1.5f);
+            gameObject.SetActive(false);
+        }
+
+        public void Consume()
+        {
+            _consumed = true;
             gameObject.SetActive(false);
         }
     }

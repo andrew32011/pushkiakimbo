@@ -7,8 +7,7 @@ namespace CrowdRunner
     {
         [SerializeField] private GameObject _root;
         [SerializeField] private Text _coinsText;
-        [SerializeField] private Text _unitsText;
-        [SerializeField] private Text _dmgText;
+        [SerializeField] private Text _levelText;
         [SerializeField] private Text _weaponText;
         [SerializeField] private Slider _progress;
 
@@ -16,7 +15,6 @@ namespace CrowdRunner
 
         private void Update()
         {
-            // прогресс плавно обновляем каждый кадр во время забега
             var gm = RunnerGameManager.Instance;
             if (_progress != null && gm != null && gm.Phase == GamePhase.Running)
                 _progress.value = gm.LevelProgress;
@@ -27,13 +25,20 @@ namespace CrowdRunner
             var gm = RunnerGameManager.Instance;
             if (gm == null) return;
             if (_coinsText != null) _coinsText.text = gm.Coins.ToString();
-            var squad = gm.Squad;
-            if (squad != null)
+            if (_levelText != null) _levelText.text = "Ур. " + gm.Level;
+            if (_weaponText != null && gm.Squad != null) _weaponText.text = WeaponName(gm.Squad.Weapon);
+        }
+
+        private static string WeaponName(WeaponType w)
+        {
+            switch (w)
             {
-                if (_unitsText != null) _unitsText.text = squad.UnitCount.ToString();
-                if (_dmgText != null) _dmgText.text = "DMG " + Mathf.RoundToInt(squad.Damage);
-                if (_weaponText != null) _weaponText.text = squad.Weapon.ToString();
+                case WeaponType.Melee: return "Ручное";
+                case WeaponType.Bow: return "Лук";
+                case WeaponType.Musket: return "Ружьё";
+                case WeaponType.Rifle: return "Винтовка";
             }
+            return w.ToString();
         }
     }
 }

@@ -3,21 +3,20 @@ using UnityEngine.UI;
 
 namespace CrowdRunner
 {
-    public class WinUI : MonoBehaviour
+    public class VictoryUI : MonoBehaviour
     {
         [SerializeField] private GameObject _root;
         [SerializeField] private Text _resultText;
 
         public void Show(bool v) { if (_root != null) _root.SetActive(v); }
 
-        public void Set(int coins, int kills)
+        public void Set(int survivors, int coins)
         {
-            if (_resultText != null) _resultText.text = $"Эпоха пройдена!\nНаграда: {coins}\nУбито: {kills}";
+            if (_resultText != null) _resultText.text = $"Уровень пройден!\nВыжило: {survivors}\nНаграда: {coins}";
         }
 
-        // ---- Кнопки ----
+        public void OnNext() => RunnerGameManager.Instance?.NextLevel();
         public void OnDouble() => RunnerGameManager.Instance?.DoubleReward();
         public void OnMenu() => RunnerGameManager.Instance?.ShowMenu();
-        public void OnNext() => RunnerGameManager.Instance?.ShowMenu(); // выбор эпохи в меню
     }
 }
