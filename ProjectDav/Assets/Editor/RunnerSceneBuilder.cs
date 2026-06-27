@@ -340,6 +340,10 @@ public static class RunnerSceneBuilder
         MakeStrip(env, "CurbL", -4.1f, 0.1f, 0.2f, len, midZ, new Color(0.85f, 0.85f, 0.9f));
         MakeStrip(env, "CurbR", 4.1f, 0.1f, 0.2f, len, midZ, new Color(0.85f, 0.85f, 0.9f));
 
+        // ограждения, отделяющие центральную дорожку от боковых
+        MakeWall(env, "FenceL", -5f, len, midZ, new Color(0.7f, 0.72f, 0.78f));
+        MakeWall(env, "FenceR", 5f, len, midZ, new Color(0.7f, 0.72f, 0.78f));
+
         var light = Object.FindObjectOfType<Light>();
         if (light == null) { light = new GameObject("Directional Light").AddComponent<Light>(); light.type = LightType.Directional; }
         light.transform.rotation = Quaternion.Euler(50f, -30f, 0f);
@@ -354,6 +358,16 @@ public static class RunnerSceneBuilder
         s.transform.localPosition = new Vector3(x, y, midZ);
         Object.DestroyImmediate(s.GetComponent<Collider>());
         s.GetComponent<Renderer>().sharedMaterial = SolidMat(color);
+    }
+
+    private static void MakeWall(Transform parent, string name, float x, float length, float midZ, Color color)
+    {
+        var w = GameObject.CreatePrimitive(PrimitiveType.Cube);
+        w.name = name; w.transform.SetParent(parent);
+        w.transform.localScale = new Vector3(0.2f, 1.4f, length);
+        w.transform.localPosition = new Vector3(x, 0.7f, midZ);
+        Object.DestroyImmediate(w.GetComponent<Collider>());
+        w.GetComponent<Renderer>().sharedMaterial = SolidMat(color);
     }
 
     // ================= ОТРЯД / КАМЕРА =================

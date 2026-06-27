@@ -47,11 +47,11 @@ namespace CrowdRunner
             UpdateLabel();
         }
 
-        public void InitBoss(LevelSpawner spawner, float hp, int level, float speed, int bonusUnits, int contactDamage, float hitInterval, Color tint)
+        public void InitBoss(LevelSpawner spawner, float hp, int level, float speed, int bonusUnits, int contactDamage, float hitInterval, float homingDist, Color tint)
         {
             _spawner = spawner; _isBoss = true; _level = level; _speed = speed;
             _maxHp = _hp = hp; _bonusUnits = bonusUnits; _contactDamage = contactDamage; _hitInterval = hitInterval;
-            _stopDist = 1.2f; _homingDist = 999f;
+            _stopDist = 1.2f; _homingDist = homingDist;
             Tint(tint);
             UpdateLabel();
             UpdateHpBar();

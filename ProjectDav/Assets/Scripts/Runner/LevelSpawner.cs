@@ -40,7 +40,7 @@ namespace CrowdRunner
         [SerializeField] private float _boosterHp = 14f;
         [SerializeField] private float _boosterSpeed = 3.5f;
         [SerializeField] private float _boosterStop = 5f;       // где встаёт головной блок
-        [SerializeField] private float _weaponChance = 0.18f;   // шанс, что блок — оружие
+        [SerializeField] private float _boosterVulnMargin = 2f; // насколько дальше стоп-линии блок ещё можно пробить
 
         [Header("Colors")]
         [SerializeField] private Color _enemyColor = new Color(0.8f, 0.25f, 0.25f);
@@ -135,20 +135,21 @@ namespace CrowdRunner
             float z = _squad.position.z + _spawnDistance;
             var boss = Instantiate(_enemyPrefab, new Vector3(0f, 0f, z), Quaternion.identity);
             boss.transform.localScale = Vector3.one * (big ? 2.8f : 1.9f);
-            boss.InitBoss(this, hp, (1 + _level) * (big ? 5 : 3), _enemySpeed * 0.7f, bonus, contactDmg, big ? 0.5f : 0.6f, _bossColor);
+            boss.InitBoss(this, hp, (1 + _level) * (big ? 5 : 3), _enemySpeed * 0.7f, bonus, contactDmg, big ? 0.5f : 0.6f, _enemyHomingDist, _bossColor);
             _alive.Add(boss);
             if (big) _bigBoss = boss;
         }
 
-        // Один блок-бонус на боковую дорожку: либо юниты, либо оружие.
+        // Левая дорожка — только оружие, правая — только +юниты.
         private void SpawnBoosterBlock(float x)
         {
             if (_boosterPrefab == null) return;
             float z = _squad.position.z + _spawnDistance;
             var b = Instantiate(_boosterPrefab, new Vector3(x, 0f, z), Quaternion.identity);
             float hp = _boosterHp + _level * 2f;
-            if (Random.value < _weaponChance) b.InitWeapon(hp, _boosterSpeed, _boosterStop, _boosterGap);
-            else b.Init(Random.Range(4, 10), hp, _boosterSpeed, _boosterStop, _boosterGap);
+            float vuln = _boosterStop + _boosterVulnMargin;
+            if (x < 0f) b.InitWeapon(hp, _boosterSpeed, _boosterStop, _boosterGap, vuln);
+            else b.Init(Random.Range(4, 10), hp, _boosterSpeed, _boosterStop, _boosterGap, vuln);
         }
 
         public void NotifyEnemyRemoved(EnemyController e)
