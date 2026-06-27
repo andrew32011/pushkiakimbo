@@ -6,6 +6,7 @@ namespace CrowdRunner
     public class UpgradeUI : UIPanel
     {
         [SerializeField] private Text _coinsText;
+        [SerializeField] private Text _weaponLabel; // стартовое оружие
         [SerializeField] private Text[] _levelTexts = new Text[4]; // по UpgradeType
         [SerializeField] private Text[] _costTexts = new Text[4];
 
@@ -14,6 +15,7 @@ namespace CrowdRunner
             var gm = GM;
             if (gm == null) return;
             if (_coinsText != null) _coinsText.text = gm.Coins.ToString();
+            if (_weaponLabel != null) _weaponLabel.text = gm.StartWeaponName;
             for (int i = 0; i < 4; i++)
             {
                 var t = (UpgradeType)i;
@@ -35,6 +37,8 @@ namespace CrowdRunner
         public void OnBuyFireRate() => Buy(UpgradeType.FireRate);
         public void OnBuyVolley() => Buy(UpgradeType.Volley);
         public void OnFreeUpgrade() { GM?.GrantFreeUpgrade(); Refresh(); }
+        public void OnPrevWeapon() { GM?.CycleStartWeapon(-1); Refresh(); }
+        public void OnNextWeapon() { GM?.CycleStartWeapon(1); Refresh(); }
         public void OnClose() { Show(false); GM?.CloseOverlay(); }
         public void OnMenu() { Show(false); GM?.ShowMenu(); }
     }

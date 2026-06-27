@@ -40,7 +40,7 @@ namespace CrowdRunner
         [SerializeField] private string _freeUpgradeAdId = "free_upgrade";
 
         [Header("Continue")]
-        [SerializeField] private int _maxContinues = 2;
+        [SerializeField] private int _maxContinues = 3; // по диздоку: до 3 воскрешений за забег
         [SerializeField] private int _continueUnits = 10;
 
         public GamePhase Phase { get; private set; } = GamePhase.Menu;
@@ -140,6 +140,27 @@ namespace CrowdRunner
         public float FireInterval => _baseFireInterval / (1f + saves.upgFireRate * _fireRateStep);
         public int Volley => 1 + saves.upgVolley;
         public WeaponType StartWeapon => (WeaponType)Mathf.Clamp(saves.startWeapon, 0, 3);
+        public string StartWeaponName => WeaponDisplayName(StartWeapon);
+
+        // Переключение стартового оружия (пока 0..3 в рамках открытой эпохи).
+        public void CycleStartWeapon(int dir)
+        {
+            saves.startWeapon = Mathf.Clamp(saves.startWeapon + dir, 0, 3);
+            YG2.SaveProgress();
+            OnEconomyChanged?.Invoke();
+        }
+
+        public static string WeaponDisplayName(WeaponType w)
+        {
+            switch (w)
+            {
+                case WeaponType.Melee: return "Ручное";
+                case WeaponType.Bow: return "Лук";
+                case WeaponType.Musket: return "Ружьё";
+                case WeaponType.Rifle: return "Винтовка";
+            }
+            return w.ToString();
+        }
 
         // ---------- Поток ----------
         public void ShowMenu()
@@ -246,6 +267,16 @@ namespace CrowdRunner
             {
                 AddCoins(_pendingCoins);
                 _victoryUI?.Set(_squad != null ? _squad.UnitCount : 0, _pendingCoins * 2, false); // x2 уже получен — прячем
+            });
+        }
+
+        // Удвоение награды на экране поражения (после исчерпания воскрешений).
+        public void DoubleDefeatReward()
+        {
+            YG2.RewardedAdvShow(_doubleAdId, () =>
+            {
+                AddCoins(_pendingCoins);
+                _defeatUI?.SetDoubled(_pendingCoins * 2);
             });
         }
 

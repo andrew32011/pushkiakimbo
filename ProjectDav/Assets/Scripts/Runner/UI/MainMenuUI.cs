@@ -6,6 +6,7 @@ namespace CrowdRunner
     public class MainMenuUI : UIPanel
     {
         [SerializeField] private Text _coinsText;
+        [SerializeField] private Text _crystalsText;
         [SerializeField] private Text _levelText;
 
         public override void Refresh()
@@ -13,6 +14,7 @@ namespace CrowdRunner
             var gm = GM;
             if (gm == null) return;
             if (_coinsText != null) _coinsText.text = gm.Coins.ToString();
+            if (_crystalsText != null) _crystalsText.text = gm.Crystals.ToString();
             if (_levelText != null) _levelText.text = "Уровень " + gm.Level;
         }
 

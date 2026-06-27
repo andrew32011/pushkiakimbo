@@ -436,7 +436,9 @@ public static class RunnerSceneBuilder
         var scaler = canvasGO.AddComponent<CanvasScaler>();
         scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
         scaler.referenceResolution = new Vector2(1080, 1920);
-        scaler.matchWidthOrHeight = 0.5f;
+        // match=1 (по высоте): вся вертикаль портретного дизайна (1920) влезает при любой
+        // ширине, поэтому в Free Aspect/горизонтали ничего не обрезается сверху/снизу.
+        scaler.matchWidthOrHeight = 1f;
         canvasGO.AddComponent<GraphicRaycaster>();
         var root = canvas.transform;
 
@@ -470,12 +472,14 @@ public static class RunnerSceneBuilder
         SetRef(menu, "_root", menuPanel);
         Label(menuPanel.transform, "CROWD RUNNER", new Vector2(0, 640), new Vector2(1000, 130), 72, TextAnchor.MiddleCenter, new Vector2(0.5f, 0.5f));
         Label(menuPanel.transform, "Epochs of War", new Vector2(0, 545), new Vector2(900, 70), 38, TextAnchor.MiddleCenter, new Vector2(0.5f, 0.5f));
-        var coinsMenu = Counter(menuPanel.transform, IconCoin, new Vector2(0.5f, 0.5f), new Vector2(0, 780), "0");
+        var coinsMenu = Counter(menuPanel.transform, IconCoin, new Vector2(0.5f, 0.5f), new Vector2(-170, 780), "0");
+        var gemMenu = Counter(menuPanel.transform, IconGem, new Vector2(0.5f, 0.5f), new Vector2(120, 780), "0");
         var levelMenu = Label(menuPanel.transform, "Уровень 1", new Vector2(0, 230), new Vector2(700, 80), 48, TextAnchor.MiddleCenter, new Vector2(0.5f, 0.5f));
         var playBtn = IconButton(menuPanel.transform, "ИГРАТЬ", "GREEN", IconPlay, new Vector2(0, 40), new Vector2(620, 170), 52);
         var shopBtn = IconButton(menuPanel.transform, "Магазин", "BLUE", IconCart, new Vector2(0, -160), new Vector2(620, 130), 40);
         var setBtn = IconButton(menuPanel.transform, "Настройки", "GREY", IconGear, new Vector2(0, -310), new Vector2(620, 130), 40);
         SetRef(menu, "_coinsText", coinsMenu);
+        SetRef(menu, "_crystalsText", gemMenu);
         SetRef(menu, "_levelText", levelMenu);
         Wire(playBtn, menu.OnPlay); Wire(shopBtn, menu.OnShop); Wire(setBtn, menu.OnSettings);
         refs.menu = menu;
@@ -489,11 +493,13 @@ public static class RunnerSceneBuilder
         Label(defCard.transform, "Вы проиграли", new Vector2(0, 360), new Vector2(800, 110), 58, TextAnchor.MiddleCenter, new Vector2(0.5f, 0.5f));
         var defResult = Label(defCard.transform, "Награда: 0", new Vector2(0, 190), new Vector2(800, 120), 40, TextAnchor.MiddleCenter, new Vector2(0.5f, 0.5f));
         var contBtn = IconButton(defCard.transform, "Продолжить (реклама)", "GREEN", IconPlay, new Vector2(0, 20), new Vector2(720, 150), 36);
+        var defDouble = IconButton(defCard.transform, "Удвоить награду (реклама)", "YELLOW", null, new Vector2(0, 20), new Vector2(720, 150), 32);
         var retryBtn = IconButton(defCard.transform, "Заново", "YELLOW", null, new Vector2(0, -150), new Vector2(620, 130), 40);
         var defHome = IconButton(defCard.transform, "В меню", "GREY", IconHome, new Vector2(0, -300), new Vector2(620, 120), 38);
         SetRef(defeat, "_resultText", defResult);
         SetRef(defeat, "_continueButton", contBtn.gameObject);
-        Wire(contBtn, defeat.OnContinue); Wire(retryBtn, defeat.OnRetry); Wire(defHome, defeat.OnMenu);
+        SetRef(defeat, "_doubleButton", defDouble.gameObject);
+        Wire(contBtn, defeat.OnContinue); Wire(defDouble, defeat.OnDouble); Wire(retryBtn, defeat.OnRetry); Wire(defHome, defeat.OnMenu);
         refs.defeat = defeat;
 
         // ---------- VICTORY ----------
@@ -520,6 +526,12 @@ public static class RunnerSceneBuilder
         Card(upgCard, new Vector2(960, 1500));
         Label(upgCard.transform, "МАГАЗИН", new Vector2(0, 640), new Vector2(800, 100), 56, TextAnchor.MiddleCenter, new Vector2(0.5f, 0.5f));
         var upgCoins = Counter(upgCard.transform, IconCoin, new Vector2(0.5f, 0.5f), new Vector2(0, 540), "0");
+        // селектор стартового оружия
+        var upgWeapon = Label(upgCard.transform, "Ручное", new Vector2(0, 470), new Vector2(360, 60), 34, TextAnchor.MiddleCenter, new Vector2(0.5f, 0.5f));
+        var wPrev = IconButton(upgCard.transform, "‹", "BLUE", null, new Vector2(-240, 470), new Vector2(90, 90), 48);
+        var wNext = IconButton(upgCard.transform, "›", "BLUE", null, new Vector2(240, 470), new Vector2(90, 90), 48);
+        SetRef(upg, "_weaponLabel", upgWeapon);
+        Wire(wPrev, upg.OnPrevWeapon); Wire(wNext, upg.OnNextWeapon);
         string[] names = { "Урон", "Старт. юниты", "Скорострельность", "Залп" };
         var lvlTexts = new Text[4]; var costTexts = new Text[4]; var buyBtns = new Button[4];
         for (int i = 0; i < 4; i++)
