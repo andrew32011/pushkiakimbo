@@ -118,9 +118,11 @@ public static class RunnerSceneBuilder
         SetRef(gm, "_victoryUI", ui.victory);
         SetRef(gm, "_upgradeUI", ui.upgrade);
         SetRef(gm, "_settingsUI", ui.settings);
-        SetRef(gm, "_shopUI", ui.shop);
         SetRef(gm, "_casesUI", ui.cases);
         SetRef(gm, "_levelSelectUI", ui.levelSelect);
+        SetRef(gm, "_bonusesUI", ui.bonuses);
+        SetRef(gm, "_skinsUI", ui.skins);
+        SetRef(gm, "_adFreeUI", ui.adFree);
 
         PlayerSettings.defaultInterfaceOrientation = UIOrientation.Portrait;
 
@@ -428,7 +430,8 @@ public static class RunnerSceneBuilder
     {
         public MainMenuUI menu; public HudUI hud; public DefeatUI defeat;
         public VictoryUI victory; public UpgradeUI upgrade; public SettingsUI settings;
-        public ShopUI shop; public CasesUI cases; public LevelSelectUI levelSelect;
+        public CasesUI cases; public LevelSelectUI levelSelect;
+        public IapStubUI bonuses; public IapStubUI skins; public IapStubUI adFree;
     }
 
     private static UiRefs BuildCanvas()
@@ -493,34 +496,33 @@ public static class RunnerSceneBuilder
         var levelMenu = Label(menuPanel.transform, "Уровень 1", Vector2.zero, new Vector2(700, 60), 36, TextAnchor.MiddleCenter, new Vector2(0.5f, 1f));
         AnchorRT(levelMenu.transform, new Vector2(0.5f, 1f), new Vector2(0, -230));
 
-        // Левая колонка квадратных кнопок — у левого края (адаптивно)
-        var upgBtn = SquareButton(menuPanel.transform, "Апгрейды", "GREEN", IconCrown, Vector2.zero, 190);
-        AnchorRT(upgBtn.transform, new Vector2(0f, 0.5f), new Vector2(120, 230));
-        var shopBtn = SquareButton(menuPanel.transform, "Магазин", "BLUE", IconCart, Vector2.zero, 190);
-        AnchorRT(shopBtn.transform, new Vector2(0f, 0.5f), new Vector2(120, 0));
-        var casesBtn = SquareButton(menuPanel.transform, "Кейсы", "YELLOW", IconGem, Vector2.zero, 190);
-        AnchorRT(casesBtn.transform, new Vector2(0f, 0.5f), new Vector2(120, -230));
+        // «ЗАБЕГ» — основной CTA, крупный, по центру над рядом подменю
+        var playBtn = IconButton(menuPanel.transform, "ЗАБЕГ", "GREEN", IconPlay, Vector2.zero, new Vector2(680, 190), 58);
+        AnchorRT(playBtn.transform, new Vector2(0.5f, 0f), new Vector2(0, 370));
 
-        // Правая колонка — у правого края (адаптивно)
-        var lvlBtn = SquareButton(menuPanel.transform, "Уровни", "BLUE", IconHome, Vector2.zero, 190);
-        AnchorRT(lvlBtn.transform, new Vector2(1f, 0.5f), new Vector2(-120, 230));
-        var setBtn = SquareButton(menuPanel.transform, "Настройки", "GREY", IconGear, Vector2.zero, 190);
-        AnchorRT(setBtn.transform, new Vector2(1f, 0.5f), new Vector2(-120, 0));
+        // Нижний ряд: каждое подменю — отдельный квадрат, равномерно по ширине (адаптивно)
+        var lvlBtn = SquareButton(menuPanel.transform, "Уровни", "BLUE", IconMap, Vector2.zero, 158);
+        var upgBtn = SquareButton(menuPanel.transform, "Апгрейды", "GREEN", IconCrown, Vector2.zero, 158);
+        var bonBtn = SquareButton(menuPanel.transform, "Бонусы", "YELLOW", IconGift, Vector2.zero, 158);
+        var skinBtn = SquareButton(menuPanel.transform, "Скины", "BLUE", IconShield, Vector2.zero, 158);
+        var casesBtn = SquareButton(menuPanel.transform, "Кейсы", "YELLOW", IconChest, Vector2.zero, 158);
+        var adBtn = SquareButton(menuPanel.transform, "Без рекл.", "RED", IconClose, Vector2.zero, 158);
+        var setBtn = SquareButton(menuPanel.transform, "Настройки", "GREY", IconGear, Vector2.zero, 158);
+        var menuRow = new[] { lvlBtn, upgBtn, bonBtn, skinBtn, casesBtn, adBtn, setBtn };
+        for (int i = 0; i < menuRow.Length; i++)
+            AnchorRT(menuRow[i].transform, new Vector2((i + 0.5f) / menuRow.Length, 0f), new Vector2(0, 115));
 
-        // «ЗАБЕГ» — низ-центр (адаптивно к нижнему краю)
-        var playBtn = IconButton(menuPanel.transform, "ЗАБЕГ", "GREEN", IconPlay, Vector2.zero, new Vector2(620, 170), 54);
-        AnchorRT(playBtn.transform, new Vector2(0.5f, 0f), new Vector2(0, 80));
-
-        // ВРЕМЕННО: сброс прогресса — низ-лево
-        var resetBtn = IconButton(menuPanel.transform, "СБРОС", "RED", null, Vector2.zero, new Vector2(230, 90), 28);
-        AnchorRT(resetBtn.transform, new Vector2(0f, 0f), new Vector2(135, 80));
+        // ВРЕМЕННО: сброс прогресса — верх-лево
+        var resetBtn = IconButton(menuPanel.transform, "СБРОС", "RED", null, Vector2.zero, new Vector2(210, 84), 26);
+        AnchorRT(resetBtn.transform, new Vector2(0f, 1f), new Vector2(125, -45));
 
         SetRef(menu, "_coinsText", coinsMenu);
         SetRef(menu, "_crystalsText", gemMenu);
         SetRef(menu, "_levelText", levelMenu);
         Wire(playBtn, menu.OnPlay);
-        Wire(upgBtn, menu.OnUpgrades); Wire(shopBtn, menu.OnShop); Wire(casesBtn, menu.OnCases);
-        Wire(lvlBtn, menu.OnLevelSelect); Wire(setBtn, menu.OnSettings);
+        Wire(lvlBtn, menu.OnLevelSelect); Wire(upgBtn, menu.OnUpgrades);
+        Wire(bonBtn, menu.OnBonuses); Wire(skinBtn, menu.OnSkins);
+        Wire(casesBtn, menu.OnCases); Wire(adBtn, menu.OnAdFree); Wire(setBtn, menu.OnSettings);
         Wire(resetBtn, menu.OnResetProgress);
         refs.menu = menu;
 
@@ -615,13 +617,19 @@ public static class RunnerSceneBuilder
         Wire(setClose, settings.OnClose); Wire(setMenu, settings.OnMenu);
         refs.settings = settings;
 
-        // ---------- SHOP (IAP) / CASES / LEVEL SELECT ----------
-        refs.shop = BuildStubOverlay<ShopUI>(root, "Shop", "МАГАЗИН",
-            new[] { "Стартовые бонусы", "Скины", "Кейсы", "Отключить рекламу" },
-            new[] { IconGift, IconShield, IconChest, IconClose });
+        // ---------- ПОДМЕНЮ (отдельными экранами) ----------
         refs.cases = BuildStubOverlay<CasesUI>(root, "Cases", "КЕЙСЫ",
             new[] { "Открыть за монеты", "Открыть за кристаллы" },
             new[] { IconChestCoin, IconChestGem });
+        refs.bonuses = BuildStubOverlay<IapStubUI>(root, "Bonuses", "СТАРТОВЫЕ БОНУСЫ",
+            new[] { "Набор новичка", "Удвоить старт. юнитов", "Буст урона" },
+            new[] { IconGift, IconCrown, IconStar });
+        refs.skins = BuildStubOverlay<IapStubUI>(root, "Skins", "СКИНЫ",
+            new[] { "Классика (беспл.)", "Золотой", "Неон" },
+            new[] { IconShield, IconStar, IconStar });
+        refs.adFree = BuildStubOverlay<IapStubUI>(root, "AdFree", "БЕЗ РЕКЛАМЫ",
+            new[] { "Отключить всю рекламу — 20₽" },
+            new[] { IconClose });
         refs.levelSelect = BuildLevelSelect(root);
 
         hudPanel.SetActive(false);
@@ -747,7 +755,7 @@ public static class RunnerSceneBuilder
 
         if (!string.IsNullOrEmpty(iconPath))
             Icon(go.transform, iconPath, new Vector2(0, size * 0.14f), new Vector2(size * 0.5f, size * 0.5f), new Vector2(0.5f, 0.5f));
-        var label = Label(go.transform, caption, new Vector2(0, -size * 0.32f), new Vector2(size - 8, 52), 26, TextAnchor.MiddleCenter, new Vector2(0.5f, 0.5f));
+        var label = Label(go.transform, caption, new Vector2(0, -size * 0.34f), new Vector2(size + 30, 46), 22, TextAnchor.MiddleCenter, new Vector2(0.5f, 0.5f));
         label.color = new Color(0.15f, 0.12f, 0.05f);
         return btn;
     }
