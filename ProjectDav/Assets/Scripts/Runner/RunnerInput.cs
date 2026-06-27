@@ -6,7 +6,7 @@ namespace CrowdRunner
     // Накапливает дельту между кадрами, отряд её "потребляет".
     public class RunnerInput : MonoBehaviour
     {
-        [SerializeField] private float _sensitivity = 0.012f; // мир. единиц на пиксель
+        [SerializeField] private float _sensitivity = 0.02f; // мир. единиц на пиксель (выше = чувствительнее драг)
 
         public bool Locked { get; set; } = true;
 

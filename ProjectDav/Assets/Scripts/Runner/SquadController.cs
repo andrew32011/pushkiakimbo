@@ -19,7 +19,7 @@ namespace CrowdRunner
         [Header("Movement")]
         [SerializeField] private float _runSpeed = 0f; // отряд стоит на месте и отстреливается
         [SerializeField] private float _roadHalfWidth = 9f; // ровно 3 дорожки: до центра боковой дорожки (±9), не шире
-        [SerializeField] private float _strafeSpeed = 10f;
+        [SerializeField] private float _strafeSpeed = 16f; // быстрее доводка к цели драга
 
         [Header("Formation")]
         [SerializeField] private int _perRow = 5;
@@ -41,9 +41,11 @@ namespace CrowdRunner
         private bool _running;
 
         // баллистика по типу оружия
-        private float _projSpeed, _projLife, _projScale, _dmgMul;
-        private bool _projPierce;
+        private float _dmgMul;
         private Color _projColor = Color.white;
+
+        // параметры луча (hitscan) по типу оружия — настраиваются в SetWeapon (позже вынесем в пак/SO)
+        private float _range = 60f, _tracerWidth = 0.12f, _tracerLife = 0.05f;
 
         public int UnitCount => _units.Count;
         public float Damage => _baseDamage * _dmgMul;
@@ -109,10 +111,13 @@ namespace CrowdRunner
             if (_fireTimer <= 0f) { _fireTimer = _fireInterval; Fire(); }
         }
 
+        private static readonly RaycastHit[] _rayHits = new RaycastHit[16];
+
         private void Fire()
         {
-            if (_projectilePrefab == null || _units.Count == 0) return;
+            if (_units.Count == 0) return;
             int firing = Mathf.Min(_units.Count, _maxFiringUnits);
+            bool any = false;
             for (int i = 0; i < firing; i++)
             {
                 var u = _units[i];
@@ -121,14 +126,46 @@ namespace CrowdRunner
                 for (int v = 0; v < _volley; v++)
                 {
                     float offset = (_volley == 1) ? 0f : (v - (_volley - 1) * 0.5f) * 0.2f;
-                    var proj = Instantiate(_projectilePrefab, baseMuzzle + Vector3.right * offset, Quaternion.identity);
-                    proj.transform.localScale = Vector3.one * _projScale;
-                    var rend = proj.GetComponentInChildren<Renderer>();
-                    if (rend != null && rend.material != null) rend.material.color = _projColor;
-                    proj.Launch(Damage, _projSpeed, _projLife, _projPierce, _projColor);
+                    FireHitscan(baseMuzzle + Vector3.right * offset);
+                    any = true;
                 }
             }
-            AudioController.Instance?.PlayShot();
+            if (any) AudioController.Instance?.PlayShot();
+        }
+
+        // Луч вперёд: бьём ближайшую цель (без пробивания), стена гасит, рисуем трассер.
+        private void FireHitscan(Vector3 origin)
+        {
+            Vector3 dir = Vector3.forward;
+            Vector3 end = origin + dir * _range;
+
+            int n = Physics.RaycastNonAlloc(origin, dir, _rayHits, _range, ~0, QueryTriggerInteraction.Collide);
+            int best = -1; float bestDist = float.MaxValue;
+            for (int h = 0; h < n; h++)
+            {
+                var col = _rayHits[h].collider;
+                if (col == null) continue;
+                if (col.GetComponentInParent<SquadController>() != null) continue; // не стреляем по себе
+                if (_rayHits[h].distance < bestDist) { bestDist = _rayHits[h].distance; best = h; }
+            }
+
+            if (best >= 0)
+            {
+                var hit = _rayHits[best];
+                end = hit.point;
+                if (hit.collider.GetComponentInParent<LaneWall>() == null) // об стену — только гасим
+                {
+                    var enemy = hit.collider.GetComponentInParent<EnemyController>();
+                    if (enemy != null && !enemy.IsDead) enemy.TakeDamage(Damage);
+                    else
+                    {
+                        var booster = hit.collider.GetComponentInParent<Booster>();
+                        if (booster != null && !booster.IsDead) booster.TakeDamage(Damage);
+                    }
+                }
+            }
+
+            TracerPool.Instance?.Spawn(origin, end, _projColor, _tracerWidth, _tracerLife);
         }
 
         // ---------- Изменение числа ----------
@@ -155,13 +192,13 @@ namespace CrowdRunner
             switch (weapon)
             {
                 case WeaponType.Melee:
-                    _projSpeed = 13f; _projLife = 1.35f; _projScale = 0.28f; _dmgMul = 1f; _projPierce = false; _projColor = new Color(0.6f, 0.6f, 0.6f); break;
+                    _dmgMul = 1f; _projColor = new Color(0.6f, 0.6f, 0.6f); _range = 16f; _tracerWidth = 0.16f; _tracerLife = 0.04f; break;
                 case WeaponType.Bow:
-                    _projSpeed = 22f; _projLife = 3.9f; _projScale = 0.18f; _dmgMul = 1.6f; _projPierce = false; _projColor = new Color(0.85f, 0.75f, 0.45f); break;
+                    _dmgMul = 1.6f; _projColor = new Color(0.85f, 0.75f, 0.45f); _range = 45f; _tracerWidth = 0.10f; _tracerLife = 0.05f; break;
                 case WeaponType.Musket:
-                    _projSpeed = 30f; _projLife = 5.1f; _projScale = 0.2f; _dmgMul = 2.6f; _projPierce = false; _projColor = new Color(0.7f, 0.75f, 0.85f); break;
+                    _dmgMul = 2.6f; _projColor = new Color(0.7f, 0.75f, 0.85f); _range = 65f; _tracerWidth = 0.16f; _tracerLife = 0.05f; break;
                 case WeaponType.Rifle:
-                    _projSpeed = 40f; _projLife = 6.6f; _projScale = 0.16f; _dmgMul = 4f; _projPierce = true; _projColor = new Color(1f, 0.85f, 0.2f); break;
+                    _dmgMul = 4f; _projColor = new Color(1f, 0.85f, 0.2f); _range = 95f; _tracerWidth = 0.10f; _tracerLife = 0.06f; break;
             }
             EquipWeaponModels();
             RunnerGameManager.Instance?.RefreshHud();

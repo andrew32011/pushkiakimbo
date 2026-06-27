@@ -87,6 +87,9 @@ public static class RunnerSceneBuilder
         SetRef(effects, "_burstPrefab", burstPrefab);
         SetRef(effects, "_floatingPrefab", floatPrefab);
 
+        var tracers = new GameObject("TracerPool").AddComponent<TracerPool>();
+        tracers.transform.SetParent(systems);
+
         var input = new GameObject("RunnerInput").AddComponent<RunnerInput>();
         input.transform.SetParent(systems);
 
