@@ -17,7 +17,7 @@ namespace CrowdRunner
         [SerializeField] private GameObject[] _weaponModels = new GameObject[4]; // по WeaponType
 
         [Header("Movement")]
-        [SerializeField] private float _runSpeed = 6f;
+        [SerializeField] private float _runSpeed = 4f;
         [SerializeField] private float _roadHalfWidth = 7f; // включает боковые дорожки (бонусы)
         [SerializeField] private float _strafeSpeed = 10f;
 

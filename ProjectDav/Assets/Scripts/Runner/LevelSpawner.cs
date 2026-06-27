@@ -31,17 +31,17 @@ namespace CrowdRunner
         [SerializeField] private float _sideLaneX = 6f;      // x двух боковых дорожек
         [SerializeField] private float _boosterGap = 3.5f;   // дистанция между бонусами в очереди
         [SerializeField] private float _boosterHp = 14f;
-        [SerializeField] private float _boosterSpeed = 5f;
+        [SerializeField] private float _boosterSpeed = 3.5f;
         [SerializeField] private float _boosterStop = 6f;    // дистанция остановки перед игроком
 
         [Header("Difficulty")]
-        [SerializeField] private float _crowdHpPerUnit = 7f;
-        [SerializeField] private int _crowdBase = 14;
-        [SerializeField] private int _crowdMaxPerWave = 40;
-        [SerializeField] private float _enemySpeed = 4.5f;
+        [SerializeField] private float _crowdHpPerUnit = 4f;
+        [SerializeField] private int _crowdBase = 18;
+        [SerializeField] private int _crowdMaxPerWave = 45;
+        [SerializeField] private float _enemySpeed = 2.6f;
         [SerializeField] private float _enemyStop = 2.2f;        // дистанция остановки перед отрядом
         [SerializeField] private int _enemyContactDamage = 1;
-        [SerializeField] private float _enemyHitInterval = 1.1f;
+        [SerializeField] private float _enemyHitInterval = 1.5f;
 
         [Header("Colors")]
         [SerializeField] private Color _good = new Color(0.3f, 0.8f, 0.4f);
@@ -86,8 +86,8 @@ namespace CrowdRunner
                 else t = EvType.Crowd;                                  // всё остальное — орды
                 _events.Add(new Ev { z = z, type = t });
 
-                // бонусы едут по боковым дорожкам (периодически)
-                if (i > 2 && i % 5 == 0) _events.Add(new Ev { z = z + _segment * 0.3f, type = EvType.BoosterRow });
+                // бонусы едут по боковым дорожкам (часто, по обоим краям)
+                if (i > 1 && i % 3 == 0) _events.Add(new Ev { z = z + _segment * 0.3f, type = EvType.BoosterRow });
 
                 z += _segment;
             }
@@ -199,11 +199,17 @@ namespace CrowdRunner
             if (big) _bigBoss = boss;
         }
 
-        // Бонусы едут по одной из боковых дорожек и встают в очередь перед игроком.
+        // Бонусы едут по ОБЕИМ боковым дорожкам и встают в очередь перед игроком.
+        // Игрок не успеет собрать всё — приходится выбирать между бонусами и ордой.
         private void SpawnBoosterRow(float z)
         {
             if (_boosterPrefab == null) return;
-            float x = (Random.value < 0.5f) ? -_sideLaneX : _sideLaneX;
+            SpawnBoosterLane(-_sideLaneX, z);
+            SpawnBoosterLane(_sideLaneX, z);
+        }
+
+        private void SpawnBoosterLane(float x, float z)
+        {
             int n = Random.Range(3, 6);
             float hp = _boosterHp + _level * 2f;
             for (int i = 0; i < n; i++)
