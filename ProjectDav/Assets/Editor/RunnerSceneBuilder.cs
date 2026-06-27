@@ -421,9 +421,10 @@ public static class RunnerSceneBuilder
 
     private static UiRefs BuildCanvas()
     {
-        // EventSystem пересоздаём заново, чтобы не остался сломанный/чужой модуль ввода.
-        var oldEs = Object.FindObjectOfType<UnityEngine.EventSystems.EventSystem>();
-        if (oldEs != null) Object.DestroyImmediate(oldEs.gameObject);
+        // EventSystem пересоздаём заново. ВАЖНО: вычищаем ВСЕ существующие, включая
+        // неактивные (иначе они копятся дубликатами и ломают ввод).
+        foreach (var es in Object.FindObjectsOfType<UnityEngine.EventSystems.EventSystem>(true))
+            Object.DestroyImmediate(es.gameObject);
         var esGO = new GameObject("EventSystem");
         esGO.AddComponent<UnityEngine.EventSystems.EventSystem>();
         esGO.AddComponent<UnityEngine.EventSystems.StandaloneInputModule>();

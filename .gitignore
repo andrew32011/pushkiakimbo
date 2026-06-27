@@ -104,3 +104,16 @@ InitTestScene*.unity*
 
 # Auto-generated cache in Assets folder
 /[Aa]ssets/[Ss]ceneDependencyCache*
+
+# --- Unity project lives in the ProjectDav/ subfolder, so the root-anchored rules
+# --- above do NOT catch it. These un-anchored rules ignore the generated caches
+# --- anywhere (фикс: иначе ProjectDav/Library попадал в git и ломал ссылки на скрипты).
+[Ll]ibrary/
+[Tt]emp/
+[Oo]bj/
+[Bb]uild/
+[Bb]uilds/
+[Ll]ogs/
+[Uu]ser[Ss]ettings/
+[Mm]emoryCaptures/
+.vs/
