@@ -26,5 +26,5 @@ MonoBehaviour:
   - {fileID: 3501148104237200075, guid: e0252d6690bbbb54e8c4ec47b37af024, type: 3}
   bossModels:
   - {fileID: 3501148104237200075, guid: e0252d6690bbbb54e8c4ec47b37af024, type: 3}
-  enemyColor: {r: 0.8, g: 0.45, b: 0.3, a: 1}
-  bossColor: {r: 0.6, g: 0.35, b: 0.2, a: 1}
+  enemyColor: {r: 0.8901515, g: 0, b: 1, a: 1}
+  bossColor: {r: 0.08018869, g: 1, b: 0.11711401, a: 1}

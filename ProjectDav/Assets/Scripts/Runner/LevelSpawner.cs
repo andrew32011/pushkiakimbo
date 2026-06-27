@@ -54,6 +54,15 @@ namespace CrowdRunner
         // Прогресс уровня = доля выпущенных врагов (а не пройденная дистанция).
         public float SpawnProgress01 => _enemyTotal > 0 ? Mathf.Clamp01((float)_spawnedCount / _enemyTotal) : 0f;
 
+        // Берём палитру (и далее — модели) из пака уровня. Фолбэк — значения из инспектора.
+        public void ApplyPack(LevelPack pack)
+        {
+            if (pack == null) return;
+            _enemyColor = pack.enemyColor;
+            _bossColor = pack.bossColor;
+            // модели орды/боссов из пака подключим на след. шаге (runtime-инжект меша).
+        }
+
         public void BeginLevel(int level)
         {
             _level = Mathf.Max(1, level);

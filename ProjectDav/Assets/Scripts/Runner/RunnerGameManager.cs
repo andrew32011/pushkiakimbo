@@ -238,6 +238,11 @@ namespace CrowdRunner
             _victoryUI?.Show(false);
             _hudUI?.Show(true);
 
+            // Применяем пак текущей эпохи (оружие/цвета) перед настройкой; фолбэк — ссылки билдера.
+            var pack = LevelContent.GetLoaded(CurrentEpoch) ?? LevelContent.Current;
+            if (pack != null) { _squad.ApplyPack(pack); _spawner.ApplyPack(pack); }
+            else LevelContent.LoadPack(CurrentEpoch); // подгрузим на будущее
+
             _squad.Setup(StartUnits, UnitDamage, FireInterval, Volley, StartWeapon);
             _camera?.SnapToTarget();
             _spawner.BeginLevel(Level);

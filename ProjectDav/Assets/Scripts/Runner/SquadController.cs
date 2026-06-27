@@ -50,6 +50,15 @@ namespace CrowdRunner
         public WeaponType Weapon => _weapon;
         public Vector3 Center => transform.position;
 
+        // Берём модели оружия из пака уровня (с фолбэком на захардкоженные билдером).
+        public void ApplyPack(LevelPack pack)
+        {
+            if (pack == null) return;
+            if (pack.weaponModels != null && pack.weaponModels.Length >= 4)
+                _weaponModels = pack.weaponModels;
+            // модель самого юнита из пака подключим на след. шаге (runtime-инжект меша).
+        }
+
         public void Setup(int count, float damage, float fireInterval, int volley, WeaponType weapon)
         {
             if (_formationRoot == null) _formationRoot = transform;
