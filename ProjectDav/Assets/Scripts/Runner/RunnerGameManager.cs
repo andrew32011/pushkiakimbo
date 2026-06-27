@@ -60,8 +60,16 @@ namespace CrowdRunner
         private static readonly string[] EpochTitles = { "Первобытность", "Средневековье", "Пороховая эпоха", "Вторая мировая" };
         public static string EpochName(int epoch) => EpochTitles[Mathf.Clamp(epoch, 0, EpochCount - 1)];
 
-        // Название текущего уровня для шапки меню (позже возьмём из LevelPack).
-        public string LevelTitle => $"{EpochName(CurrentEpoch)} · ур. {Level}";
+        // Название текущего уровня для шапки меню: из загруженного пака, иначе фолбэк по эпохе.
+        public string LevelTitle
+        {
+            get
+            {
+                var pack = LevelContent.Current;
+                string name = (pack != null && !string.IsNullOrEmpty(pack.levelName)) ? pack.levelName : EpochName(CurrentEpoch);
+                return $"{name} · ур. {Level}";
+            }
+        }
 
         public bool IsEpochUnlocked(int epoch) => epoch <= 0 || saves.maxLevel > epoch * _levelsPerEpoch;
         public int EpochStartLevel(int epoch) => Mathf.Max(1, epoch * _levelsPerEpoch + 1);
@@ -214,6 +222,9 @@ namespace CrowdRunner
                 _camera?.SnapToTarget();
             }
             OnEconomyChanged?.Invoke();
+
+            // Грузим пак текущей эпохи по требованию; по готовности обновляем шапку (название уровня).
+            LevelContent.LoadPack(CurrentEpoch, _ => OnEconomyChanged?.Invoke());
         }
 
         public void StartRun()
