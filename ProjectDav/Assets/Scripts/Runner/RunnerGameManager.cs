@@ -57,6 +57,12 @@ namespace CrowdRunner
 
         // ---------- Эпохи / выбор уровня ----------
         public const int EpochCount = 4;
+        private static readonly string[] EpochTitles = { "Первобытность", "Средневековье", "Пороховая эпоха", "Вторая мировая" };
+        public static string EpochName(int epoch) => EpochTitles[Mathf.Clamp(epoch, 0, EpochCount - 1)];
+
+        // Название текущего уровня для шапки меню (позже возьмём из LevelPack).
+        public string LevelTitle => $"{EpochName(CurrentEpoch)} · ур. {Level}";
+
         public bool IsEpochUnlocked(int epoch) => epoch <= 0 || saves.maxLevel > epoch * _levelsPerEpoch;
         public int EpochStartLevel(int epoch) => Mathf.Max(1, epoch * _levelsPerEpoch + 1);
 

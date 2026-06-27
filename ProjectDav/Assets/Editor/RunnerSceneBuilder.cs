@@ -486,9 +486,10 @@ public static class RunnerSceneBuilder
         var menu = menuPanel.AddComponent<MainMenuUI>();
         SetRef(menu, "_root", menuPanel);
 
-        // Верх-центр: заголовок, валюты, уровень (привязаны к верхнему краю — адаптивно)
-        var titleLbl = Label(menuPanel.transform, "CROWD RUNNER", Vector2.zero, new Vector2(900, 100), 56, TextAnchor.MiddleCenter, new Vector2(0.5f, 1f));
+        // Верх-центр: название уровня, валюты, уровень (привязаны к верхнему краю — адаптивно)
+        var titleLbl = Label(menuPanel.transform, "Первобытность · ур. 1", Vector2.zero, new Vector2(1000, 100), 52, TextAnchor.MiddleCenter, new Vector2(0.5f, 1f));
         AnchorRT(titleLbl.transform, new Vector2(0.5f, 1f), new Vector2(0, -30));
+        SetRef(menu, "_titleText", titleLbl);
         var coinsMenu = Counter(menuPanel.transform, IconCoin, new Vector2(0.5f, 0.5f), Vector2.zero, "0");
         AnchorRT(coinsMenu.transform.parent, new Vector2(0.5f, 1f), new Vector2(-180, -140));
         var gemMenu = Counter(menuPanel.transform, IconGem, new Vector2(0.5f, 0.5f), Vector2.zero, "0");
