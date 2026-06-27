@@ -11,8 +11,9 @@ namespace CrowdRunner
 
         private LevelSpawner _spawner;
         private bool _isBoss;
+        private bool _showLabel = true;
         private float _speed;
-        private float _homingSpeed = 6f;
+        private float _homingSpeed = 2.5f;
         private int _level;
 
         // толпа
@@ -30,13 +31,15 @@ namespace CrowdRunner
         public int Level => _level;
         public int CrowdCount => Mathf.Max(1, Mathf.CeilToInt(_hp / _hpPerUnit));
 
-        public void InitCrowd(LevelSpawner spawner, int count, int level, float speed, float hpPerUnit, Color tint)
+        public void InitCrowd(LevelSpawner spawner, int count, int level, float speed, float hpPerUnit, Color tint, bool showLabel)
         {
             _spawner = spawner; _isBoss = false; _level = level; _speed = speed;
+            _showLabel = showLabel;
             _hpPerUnit = Mathf.Max(1f, hpPerUnit);
             _maxHp = _hp = count * _hpPerUnit;
             Tint(tint);
             if (_hpBarFill != null) _hpBarFill.gameObject.SetActive(false);
+            if (_label != null) _label.gameObject.SetActive(showLabel);
             UpdateLabel();
         }
 
@@ -117,8 +120,12 @@ namespace CrowdRunner
             if (reward)
             {
                 RunnerGameManager.Instance?.ReportKill(_isBoss ? _level * 5 : _level);
-                AudioController.Instance?.PlayEnemyDie();
-                EffectsManager.Burst(transform.position + Vector3.up * 1f, _isBoss ? new Color(0.7f, 0.2f, 0.9f) : new Color(1f, 0.3f, 0.3f), _isBoss ? 2.5f : 1.2f);
+                // эффекты только у босса — орда из десятков монстров иначе перегрузит партиклы/звук
+                if (_isBoss)
+                {
+                    AudioController.Instance?.PlayEnemyDie();
+                    EffectsManager.Burst(transform.position + Vector3.up * 1f, new Color(0.7f, 0.2f, 0.9f), 2.5f);
+                }
                 if (_isBoss && _bonusUnits > 0)
                 {
                     var squad = RunnerGameManager.Instance?.Squad;

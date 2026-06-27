@@ -60,8 +60,7 @@ public static class RunnerSceneBuilder
         GameObject unitPrefab = BuildUnitPrefab();
         EnemyController enemyPrefab = BuildEnemyPrefab();
         Gate gatePrefab = BuildGatePrefab();
-        Booster boosterPrefab = BuildBoosterPrefab();
-        GiftBox giftPrefab = BuildGiftPrefab();
+        BonusPickup bonusPrefab = BuildBonusPrefab();
         Projectile projPrefab = BuildProjectilePrefab();
         FloatingText floatPrefab = BuildFloatingTextPrefab();
         ParticleSystem burstPrefab = BuildBurstPrefab();
@@ -92,8 +91,7 @@ public static class RunnerSceneBuilder
         var spawner = spawnerGO.AddComponent<LevelSpawner>();
         SetRef(spawner, "_gatePrefab", gatePrefab);
         SetRef(spawner, "_enemyPrefab", enemyPrefab);
-        SetRef(spawner, "_boosterPrefab", boosterPrefab);
-        SetRef(spawner, "_giftPrefab", giftPrefab);
+        SetRef(spawner, "_bonusPrefab", bonusPrefab);
         SetRef(spawner, "_squad", squad.transform);
 
         var ui = BuildCanvas();
@@ -198,46 +196,31 @@ public static class RunnerSceneBuilder
         return prefab.GetComponent<Gate>();
     }
 
-    private static Booster BuildBoosterPrefab()
+    private static BonusPickup BuildBonusPrefab()
     {
-        var root = new GameObject("Booster");
-        // статуя сбоку
-        var statue = GameObject.CreatePrimitive(PrimitiveType.Cube);
-        statue.name = "Statue"; statue.transform.SetParent(root.transform);
-        statue.transform.localScale = new Vector3(1f, 2.2f, 1f);
-        statue.transform.localPosition = new Vector3(0f, 1.1f, 0f);
-        Object.DestroyImmediate(statue.GetComponent<Collider>());
-        statue.GetComponent<Renderer>().sharedMaterial = SolidMat(new Color(0.5f, 0.85f, 0.6f));
+        var root = new GameObject("BonusPickup");
+        // визуал — небольшая «капсула-кристалл» с числом
+        var body = GameObject.CreatePrimitive(PrimitiveType.Cube);
+        body.name = "Body"; body.transform.SetParent(root.transform);
+        body.transform.localScale = new Vector3(0.9f, 1.3f, 0.2f);
+        body.transform.localPosition = new Vector3(0f, 0.9f, 0f);
+        Object.DestroyImmediate(body.GetComponent<Collider>());
+        var bodyRend = body.GetComponent<Renderer>();
+        bodyRend.sharedMaterial = SolidMat(new Color(0.4f, 0.85f, 0.5f));
 
-        // зона действия — большой триггер, дотягивается до дороги с любой стороны
-        var zone = root.AddComponent<BoxCollider>();
-        zone.isTrigger = true;
-        zone.center = new Vector3(0f, 1f, 0f);
-        zone.size = new Vector3(14f, 2f, 6f);
+        var trigger = root.AddComponent<BoxCollider>();
+        trigger.center = new Vector3(0f, 0.9f, 0f);
+        trigger.size = new Vector3(1.1f, 1.6f, 0.7f);
+        trigger.isTrigger = true;
 
-        var booster = root.AddComponent<Booster>();
-        var label = MakeTextMesh(root.transform, "+2", new Vector3(0f, 2.6f, 0f), 0.35f, new Color(0.5f, 1f, 0.6f));
-        SetRef(booster, "_label", label.GetComponent<TextMesh>());
-        SetRef(booster, "_zone", zone);
+        var bonus = root.AddComponent<BonusPickup>();
+        var label = MakeTextMesh(root.transform, "+5", new Vector3(0f, 0.9f, -0.12f), 0.3f, Color.white);
+        SetRef(bonus, "_label", label.GetComponent<TextMesh>());
+        SetRef(bonus, "_background", bodyRend);
 
-        var prefab = PrefabUtility.SaveAsPrefabAsset(root, GenFolder + "/Booster.prefab");
+        var prefab = PrefabUtility.SaveAsPrefabAsset(root, GenFolder + "/BonusPickup.prefab");
         Object.DestroyImmediate(root);
-        return prefab.GetComponent<Booster>();
-    }
-
-    private static GiftBox BuildGiftPrefab()
-    {
-        var root = GameObject.CreatePrimitive(PrimitiveType.Cube);
-        root.name = "GiftBox";
-        root.transform.localScale = new Vector3(0.9f, 0.9f, 0.9f);
-        var col = root.GetComponent<BoxCollider>();
-        col.isTrigger = true; col.size = Vector3.one * 1.4f;
-        root.GetComponent<Renderer>().sharedMaterial = SolidMat(new Color(1f, 0.8f, 0.25f));
-        root.AddComponent<GiftBox>();
-
-        var prefab = PrefabUtility.SaveAsPrefabAsset(root, GenFolder + "/GiftBox.prefab");
-        Object.DestroyImmediate(root);
-        return prefab.GetComponent<GiftBox>();
+        return prefab.GetComponent<BonusPickup>();
     }
 
     private static Projectile BuildProjectilePrefab()

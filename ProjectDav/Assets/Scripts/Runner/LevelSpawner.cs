@@ -3,18 +3,17 @@ using UnityEngine;
 
 namespace CrowdRunner
 {
-    // Генерирует длинный уровень: пары ворот (±×÷), боковые бустеры, подарки,
-    // толпы врагов, мини-босс в середине и большой босс в конце.
+    // Генерирует длинный уровень: пары ворот (±×÷), ОРДЫ отдельных монстров,
+    // редкие подъезжающие бонусы, мини-босс в середине и большой босс в конце.
     public class LevelSpawner : MonoBehaviour
     {
-        private enum EvType { GatePair, Crowd, MiniBoss, BigBoss, WeaponPickup, Booster }
+        private enum EvType { GatePair, Crowd, MiniBoss, BigBoss, Bonus }
         private struct Ev { public float z; public EvType type; }
 
         [Header("Prefabs")]
         [SerializeField] private Gate _gatePrefab;
         [SerializeField] private EnemyController _enemyPrefab;
-        [SerializeField] private Booster _boosterPrefab;
-        [SerializeField] private GiftBox _giftPrefab;
+        [SerializeField] private BonusPickup _bonusPrefab;
 
         [Header("Refs")]
         [SerializeField] private Transform _squad;
@@ -24,13 +23,18 @@ namespace CrowdRunner
         [SerializeField] private float _startZ = 14f;
         [SerializeField] private float _segment = 13f;
         [SerializeField] private float _laneX = 2.3f;
-        [SerializeField] private float _sideX = 5.2f;
+        [SerializeField] private float _roadHalf = 3.4f;
         [SerializeField] private float _spawnAhead = 40f;
 
-        [Header("Difficulty")]
-        [SerializeField] private float _crowdHpPerUnit = 4f;
-        [SerializeField] private int _crowdBase = 8;
-        [SerializeField] private float _enemySpeed = 3.5f;
+        [Header("Орда (поток монстров)")]
+        [SerializeField] private float _crowdHpPerUnit = 3f;
+        [SerializeField] private int _crowdBase = 14;
+        [SerializeField] private int _crowdMax = 44;
+        [SerializeField] private int _rowSize = 6;
+        [SerializeField] private float _enemySpeed = 1.6f;
+
+        [Header("Бонусы (редкие, п.3)")]
+        [SerializeField] private int _bonusEvery = 13;
 
         [Header("Colors")]
         [SerializeField] private Color _good = new Color(0.3f, 0.8f, 0.4f);
@@ -71,12 +75,12 @@ namespace CrowdRunner
             {
                 EvType t;
                 if (i == mid) t = EvType.MiniBoss;
-                else if (i > 0 && i % 11 == 0) t = EvType.WeaponPickup;
                 else t = (i % 2 == 0) ? EvType.GatePair : EvType.Crowd;
                 _events.Add(new Ev { z = z, type = t });
 
-                // боковые бустеры периодически (параллельно, не занимают слот пути)
-                if (i % 5 == 2) _events.Add(new Ev { z = z + _segment * 0.4f, type = EvType.Booster });
+                // редкие бонусы (подъезжают сбоку, встают в очередь)
+                if (i > 0 && i % _bonusEvery == (_bonusEvery / 2))
+                    _events.Add(new Ev { z = z + _segment * 0.5f, type = EvType.Bonus });
 
                 z += _segment;
             }
@@ -112,10 +116,9 @@ namespace CrowdRunner
             {
                 case EvType.GatePair: SpawnGatePair(ev.z); break;
                 case EvType.Crowd: SpawnCrowd(ev.z); break;
-                case EvType.WeaponPickup: SpawnWeaponPickup(ev.z); break;
                 case EvType.MiniBoss: SpawnBoss(ev.z, false); break;
                 case EvType.BigBoss: SpawnBoss(ev.z, true); break;
-                case EvType.Booster: SpawnBoosterAndGift(ev.z); break;
+                case EvType.Bonus: SpawnBonus(ev.z); break;
             }
         }
 
@@ -124,71 +127,68 @@ namespace CrowdRunner
             if (_gatePrefab == null) return;
             var left = Instantiate(_gatePrefab, new Vector3(-_laneX, 0f, z), Quaternion.identity);
             var right = Instantiate(_gatePrefab, new Vector3(_laneX, 0f, z), Quaternion.identity);
-
-            // одна сторона хорошая, другая может быть хуже/плохой
             ConfigGate(left, true);
             ConfigGate(right, Random.value < 0.5f);
             left.SetPair(right); right.SetPair(left);
         }
 
+        // п.1 — рост отряда замедлен: значения ворот скромные.
         private void ConfigGate(Gate g, bool good)
         {
             if (good)
             {
-                if (Random.value < 0.4f) g.Init(GateOp.Multiply, Random.Range(2, 4), _good2);
-                else g.Init(GateOp.Add, Random.Range(8, 20 + _level * 2), _good);
+                if (Random.value < 0.15f) g.Init(GateOp.Multiply, 2, _good2);
+                else g.Init(GateOp.Add, Random.Range(2, 7), _good);
             }
             else
             {
-                if (Random.value < 0.5f) g.Init(GateOp.Subtract, Random.Range(8, 18), _bad);
+                if (Random.value < 0.5f) g.Init(GateOp.Subtract, Random.Range(6, 14), _bad);
                 else g.Init(GateOp.Divide, 2, _bad);
             }
         }
 
-        private void SpawnWeaponPickup(float z)
-        {
-            if (_gatePrefab == null) return;
-            var g = Instantiate(_gatePrefab, new Vector3(0f, 0f, z), Quaternion.identity);
-            g.InitWeaponPickup(_gold);
-        }
-
+        // п.2 — толпа = множество отдельных бегущих монстров (орда).
         private void SpawnCrowd(float z)
         {
             if (_enemyPrefab == null) return;
-            int count = _crowdBase + _level * 3 + Random.Range(0, 6 + _level);
-            float x = Random.Range(-1f, 1f);
-            var e = Instantiate(_enemyPrefab, new Vector3(x, 0f, z), Quaternion.identity);
-            e.transform.localScale = Vector3.one;
-            e.InitCrowd(this, count, 1 + _level, _enemySpeed, _crowdHpPerUnit, _enemyColor);
-            _alive.Add(e);
+            int count = Mathf.Min(_crowdMax, _crowdBase + _level * 5 + Random.Range(0, 8));
+            for (int i = 0; i < count; i++)
+            {
+                float x = Random.Range(-_roadHalf, _roadHalf);
+                float dz = (i / _rowSize) * 1.3f + Random.Range(0f, 0.5f);
+                var e = Instantiate(_enemyPrefab, new Vector3(x, 0f, z + dz), Quaternion.Euler(0f, 180f, 0f));
+                e.transform.localScale = Vector3.one * 0.85f;
+                e.InitCrowd(this, 1, 1 + _level, _enemySpeed, _crowdHpPerUnit, _enemyColor, false);
+                _alive.Add(e);
+            }
         }
 
         private void SpawnBoss(float z, bool big)
         {
             if (_enemyPrefab == null) return;
             float hp = (big ? 400f : 140f) * (1f + _level * 0.4f);
-            int bonus = big ? Random.Range(30, 51) : Random.Range(15, 26);
+            int bonus = big ? Random.Range(10, 21) : Random.Range(6, 13);
             int contactDmg = big ? 6 + _level : 4 + _level / 2;
-            var boss = Instantiate(_enemyPrefab, new Vector3(0f, 0f, z), Quaternion.identity);
+            var boss = Instantiate(_enemyPrefab, new Vector3(0f, 0f, z), Quaternion.Euler(0f, 180f, 0f));
             boss.transform.localScale = Vector3.one * (big ? 2.8f : 1.9f);
-            boss.InitBoss(this, hp, (1 + _level) * (big ? 5 : 3), _enemySpeed * 0.6f, bonus, contactDmg, big ? 0.5f : 0.6f, _bossColor);
+            boss.InitBoss(this, hp, (1 + _level) * (big ? 5 : 3), _enemySpeed * 0.7f, bonus, contactDmg, big ? 0.5f : 0.6f, _bossColor);
             _alive.Add(boss);
             if (big) _bigBoss = boss;
         }
 
-        private void SpawnBoosterAndGift(float z)
+        // п.4 — бонусы подъезжают сбоку и встают очередью перед отрядом (обе стороны).
+        private void SpawnBonus(float z)
         {
+            if (_bonusPrefab == null) return;
+            bool weapon = Random.value < 0.3f;
             bool leftSide = Random.value < 0.5f;
-            if (_boosterPrefab != null)
+            float sx = leftSide ? -_roadHalf : _roadHalf;
+            int n = weapon ? 1 : Random.Range(1, 3);
+            for (int i = 0; i < n; i++)
             {
-                var b = Instantiate(_boosterPrefab, new Vector3(leftSide ? -_sideX : _sideX, 0f, z), Quaternion.identity);
-                b.Init(Random.Range(2, 6), 0.5f);
-            }
-            // иногда подарок на противоположном краю
-            if (_giftPrefab != null && Random.value < 0.5f)
-            {
-                var g = Instantiate(_giftPrefab, new Vector3(leftSide ? _laneX + 1f : -_laneX - 1f, 0.4f, z + 4f), Quaternion.identity);
-                g.Init(10, 30);
+                var bp = Instantiate(_bonusPrefab, new Vector3(sx, 0.4f, z + i * 3f), Quaternion.identity);
+                if (weapon) bp.InitWeapon(_gold);
+                else bp.InitUnits(Random.Range(3, 7), _good);
             }
         }
 
