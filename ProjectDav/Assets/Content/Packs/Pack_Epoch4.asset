@@ -1,0 +1,29 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9a9386a9a5a71ce4988910e1fa63cd6f, type: 3}
+  m_Name: Pack_Epoch4
+  m_EditorClassIdentifier: 
+  levelName: "\u0412\u0442\u043E\u0440\u0430\u044F \u043C\u0438\u0440\u043E\u0432\u0430\u044F"
+  epoch: 3
+  sceneAddress: Epoch4_WW2
+  squadUnitModel: {fileID: 3501148104237200075, guid: e0252d6690bbbb54e8c4ec47b37af024, type: 3}
+  weaponModels:
+  - {fileID: 7451429457687790065, guid: 6437256eb2bca0442b03718d0c8df9d6, type: 3}
+  - {fileID: 841705163953779277, guid: 4ee6022004f122c48b1da157bfeb468f, type: 3}
+  - {fileID: 8055818157609729454, guid: cffd6da165d83e343aeaad45c90e0ab1, type: 3}
+  - {fileID: 4333736060742463707, guid: 0700a1febd747e54bb6d6907712c182e, type: 3}
+  enemyModels:
+  - {fileID: 3501148104237200075, guid: e0252d6690bbbb54e8c4ec47b37af024, type: 3}
+  bossModels:
+  - {fileID: 3501148104237200075, guid: e0252d6690bbbb54e8c4ec47b37af024, type: 3}
+  enemyColor: {r: 0.4, g: 0.5, b: 0.35, a: 1}
+  bossColor: {r: 0.3, g: 0.4, b: 0.3, a: 1}
