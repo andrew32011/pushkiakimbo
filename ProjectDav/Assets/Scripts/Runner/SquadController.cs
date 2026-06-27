@@ -18,7 +18,7 @@ namespace CrowdRunner
 
         [Header("Movement")]
         [SerializeField] private float _runSpeed = 0f; // отряд стоит на месте и отстреливается
-        [SerializeField] private float _roadHalfWidth = 7f; // включает боковые дорожки (бонусы)
+        [SerializeField] private float _roadHalfWidth = 10f; // включает боковые дорожки (бонусы)
         [SerializeField] private float _strafeSpeed = 10f;
 
         [Header("Formation")]
@@ -226,22 +226,25 @@ namespace CrowdRunner
             int count = _units.Count;
             if (count == 0) { if (_sensor != null) _sensor.size = new Vector3(0.6f, 1.4f, 0.8f); return; }
 
-            int cols = Mathf.Min(_perRow, count);
+            // Толпа-круг: раскладка по золотому углу (подсолнух) — плотный круглый строй.
+            const float golden = 2.399963f;
+            float k = _spacing * 0.85f;
+            float maxR = 0f;
             for (int i = 0; i < count; i++)
             {
-                int row = i / _perRow;
-                int col = i % _perRow;
-                int rowCount = Mathf.Min(_perRow, count - row * _perRow);
-                float x = (col - (rowCount - 1) * 0.5f) * _spacing;
-                float z = -row * _spacing;
+                float r = (count == 1) ? 0f : k * Mathf.Sqrt(i);
+                float ang = i * golden;
+                float x = r * Mathf.Cos(ang);
+                float z = r * Mathf.Sin(ang);
                 if (_units[i] != null) _units[i].transform.localPosition = new Vector3(x, 0f, z);
+                if (r > maxR) maxR = r;
             }
 
             if (_sensor != null)
             {
-                float width = Mathf.Max(0.8f, cols * _spacing + 0.4f);
-                _sensor.size = new Vector3(width, 1.6f, 0.9f);
-                _sensor.center = new Vector3(0f, 0.7f, 0.6f);
+                float d = Mathf.Max(0.8f, maxR * 2f + 0.6f);
+                _sensor.size = new Vector3(d, 1.6f, d);
+                _sensor.center = new Vector3(0f, 0.7f, 0f);
             }
         }
 

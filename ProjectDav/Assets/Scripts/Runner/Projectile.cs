@@ -30,6 +30,9 @@ namespace CrowdRunner
 
         private void OnTriggerEnter(Collider other)
         {
+            // об ограждение между дорожками пуля гасится
+            if (other.GetComponentInParent<LaneWall>() != null) { Destroy(gameObject); return; }
+
             var enemy = other.GetComponentInParent<EnemyController>();
             if (enemy != null && !enemy.IsDead)
             {

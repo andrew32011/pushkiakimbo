@@ -475,6 +475,7 @@
 "Assets/Scripts/Runner/GameEnums.cs"
 "Assets/Scripts/Runner/Gate.cs"
 "Assets/Scripts/Runner/GiftBox.cs"
+"Assets/Scripts/Runner/LaneWall.cs"
 "Assets/Scripts/Runner/LevelSpawner.cs"
 "Assets/Scripts/Runner/Projectile.cs"
 "Assets/Scripts/Runner/RunnerGameManager.cs"

@@ -23,7 +23,7 @@ namespace CrowdRunner
         [SerializeField] private float _spawnMax = 1.1f;
         [SerializeField] private int _spawnGroupMax = 4;       // сколько врагов за один подспавн
         [SerializeField] private float _spawnDistance = 45f;   // где появляются впереди
-        [SerializeField] private float _laneHalfWidth = 4f;    // ширина центральной дорожки
+        [SerializeField] private float _laneHalfWidth = 6f;    // ширина центральной дорожки
 
         [Header("Орда")]
         [SerializeField] private float _crowdHpPerUnit = 4f;
@@ -34,7 +34,7 @@ namespace CrowdRunner
         [SerializeField] private float _enemyHitInterval = 1.5f;
 
         [Header("Бонусы (боковые дорожки, по одному)")]
-        [SerializeField] private float _sideLaneX = 6f;
+        [SerializeField] private float _sideLaneX = 9f;
         [SerializeField] private float _boosterInterval = 2.0f; // как часто выезжает новый блок
         [SerializeField] private float _boosterGap = 2.2f;      // дистанция в очереди
         [SerializeField] private float _boosterHp = 14f;

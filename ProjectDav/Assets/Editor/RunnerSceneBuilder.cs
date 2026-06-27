@@ -334,15 +334,19 @@ public static class RunnerSceneBuilder
         var env = new GameObject(EnvRoot).transform;
         float len = 2200f, midZ = 1000f;
 
-        MakeStrip(env, "Road", 0f, -0.05f, 8f, len, midZ, new Color(0.42f, 0.43f, 0.48f));
-        MakeStrip(env, "GrassL", -8f, -0.1f, 8f, len, midZ, new Color(0.3f, 0.55f, 0.32f));
-        MakeStrip(env, "GrassR", 8f, -0.1f, 8f, len, midZ, new Color(0.3f, 0.55f, 0.32f));
-        MakeStrip(env, "CurbL", -4.1f, 0.1f, 0.2f, len, midZ, new Color(0.85f, 0.85f, 0.9f));
-        MakeStrip(env, "CurbR", 4.1f, 0.1f, 0.2f, len, midZ, new Color(0.85f, 0.85f, 0.9f));
+        MakeStrip(env, "Road", 0f, -0.05f, 12f, len, midZ, new Color(0.42f, 0.43f, 0.48f));
+        MakeStrip(env, "GrassL", -12f, -0.1f, 12f, len, midZ, new Color(0.3f, 0.55f, 0.32f));
+        MakeStrip(env, "GrassR", 12f, -0.1f, 12f, len, midZ, new Color(0.3f, 0.55f, 0.32f));
+        MakeStrip(env, "CurbL", -6.1f, 0.1f, 0.2f, len, midZ, new Color(0.85f, 0.85f, 0.9f));
+        MakeStrip(env, "CurbR", 6.1f, 0.1f, 0.2f, len, midZ, new Color(0.85f, 0.85f, 0.9f));
 
-        // ограждения, отделяющие центральную дорожку от боковых
-        MakeWall(env, "FenceL", -5f, len, midZ, new Color(0.7f, 0.72f, 0.78f));
-        MakeWall(env, "FenceR", 5f, len, midZ, new Color(0.7f, 0.72f, 0.78f));
+        // ограждения между центральной и боковыми дорожками: об них гасятся пули.
+        // Тянутся вдаль и ОБРЫВАЮТСЯ на линии, где можно атаковать бонусы вблизи.
+        float vulnLine = 7f;
+        float farZ = midZ + len * 0.5f;
+        var fenceColor = new Color(0.7f, 0.72f, 0.78f);
+        MakeWall(env, "FenceL", -7.5f, vulnLine, farZ, fenceColor);
+        MakeWall(env, "FenceR", 7.5f, vulnLine, farZ, fenceColor);
 
         var light = Object.FindObjectOfType<Light>();
         if (light == null) { light = new GameObject("Directional Light").AddComponent<Light>(); light.type = LightType.Directional; }
@@ -360,13 +364,15 @@ public static class RunnerSceneBuilder
         s.GetComponent<Renderer>().sharedMaterial = SolidMat(color);
     }
 
-    private static void MakeWall(Transform parent, string name, float x, float length, float midZ, Color color)
+    private static void MakeWall(Transform parent, string name, float x, float startZ, float endZ, Color color)
     {
+        float length = Mathf.Max(0.1f, endZ - startZ);
+        float midZ = (startZ + endZ) * 0.5f;
         var w = GameObject.CreatePrimitive(PrimitiveType.Cube);
         w.name = name; w.transform.SetParent(parent);
         w.transform.localScale = new Vector3(0.2f, 1.4f, length);
         w.transform.localPosition = new Vector3(x, 0.7f, midZ);
-        Object.DestroyImmediate(w.GetComponent<Collider>());
+        w.AddComponent<LaneWall>();   // коллайдер оставляем — об него гасятся пули
         w.GetComponent<Renderer>().sharedMaterial = SolidMat(color);
     }
 
@@ -398,7 +404,7 @@ public static class RunnerSceneBuilder
         var camGO = Camera.main != null ? Camera.main.gameObject : null;
         if (camGO == null) { camGO = new GameObject("Main Camera"); camGO.tag = "MainCamera"; camGO.AddComponent<Camera>(); }
         var cam = camGO.GetComponent<Camera>();
-        cam.fieldOfView = 52f; cam.clearFlags = CameraClearFlags.SolidColor;
+        cam.fieldOfView = 56f; cam.clearFlags = CameraClearFlags.SolidColor;
         cam.backgroundColor = new Color(0.5f, 0.72f, 0.95f);
         var follow = camGO.GetComponent<CameraFollow>() ?? camGO.AddComponent<CameraFollow>();
         SetRef(follow, "_target", target);

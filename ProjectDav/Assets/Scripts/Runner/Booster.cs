@@ -79,9 +79,6 @@ namespace CrowdRunner
         public void TakeDamage(float dmg)
         {
             if (_dead) return;
-            // пока блок не доехал близко по своей дорожке — пулями не пробить
-            var squad = RunnerGameManager.Instance?.Squad;
-            if (squad != null && (transform.position.z - squad.Center.z) > _vulnDist) return;
             _hp -= dmg;
             EffectsManager.Burst(transform.position + Vector3.up * 1f, KindColor(), 0.4f);
             if (_hp <= 0f) Collect();

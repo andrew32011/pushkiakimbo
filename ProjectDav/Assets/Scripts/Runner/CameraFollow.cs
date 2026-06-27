@@ -6,9 +6,9 @@ namespace CrowdRunner
     public class CameraFollow : MonoBehaviour
     {
         [SerializeField] private Transform _target;     // отряд
-        [SerializeField] private Vector3 _offset = new Vector3(0f, 7f, -7f);
+        [SerializeField] private Vector3 _offset = new Vector3(0f, 12f, -13f);
         [SerializeField] private float _followLerp = 6f;
-        [SerializeField] private float _pitch = 32f;
+        [SerializeField] private float _pitch = 38f;
 
         private void LateUpdate()
         {
