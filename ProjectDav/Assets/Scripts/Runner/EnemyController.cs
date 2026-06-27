@@ -20,7 +20,6 @@ namespace CrowdRunner
         // толпа
         private float _hp, _maxHp, _hpPerUnit = 4f;
         // босс
-        private int _bonusUnits;
         private int _contactDamage;
         private float _hitInterval = 0.5f;
         private float _hitTimer;
@@ -52,7 +51,7 @@ namespace CrowdRunner
         public void InitBoss(LevelSpawner spawner, float hp, int level, float speed, int bonusUnits, int contactDamage, float hitInterval, float homingDist, GameObject model, Color tint)
         {
             _spawner = spawner; _isBoss = true; _level = level; _speed = speed;
-            _maxHp = _hp = hp; _bonusUnits = bonusUnits; _contactDamage = contactDamage; _hitInterval = hitInterval;
+            _maxHp = _hp = hp; _contactDamage = contactDamage; _hitInterval = hitInterval; // bonusUnits больше не используется
             _stopDist = 1.2f; _homingDist = homingDist;
             SetModel(model, tint);
             UpdateLabel();
@@ -140,11 +139,7 @@ namespace CrowdRunner
                 RunnerGameManager.Instance?.ReportKill(_isBoss ? _level * 5 : _level);
                 AudioController.Instance?.PlayEnemyDie();
                 EffectsManager.Burst(transform.position + Vector3.up * 1f, _isBoss ? new Color(0.7f, 0.2f, 0.9f) : new Color(1f, 0.3f, 0.3f), _isBoss ? 2.5f : 1.2f);
-                if (_isBoss && _bonusUnits > 0)
-                {
-                    var squad = RunnerGameManager.Instance?.Squad;
-                    if (squad != null) squad.ModifyUnits(GateOp.Add, _bonusUnits);
-                }
+                // доп. юниты за босса убраны — босс теперь чистая угроза без награды отрядом
             }
             _spawner?.NotifyEnemyRemoved(this);
             StartCoroutine(DeathAnim());

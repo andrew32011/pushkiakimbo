@@ -19,24 +19,25 @@ namespace CrowdRunner
         [Header("Поток врагов / длина волны")]
         [SerializeField] private int _enemyTotalBase = 150;    // длинная волна (1-й уровень)
         [SerializeField] private int _enemyTotalPerLevel = 90; // + к длине волны за уровень
-        [SerializeField] private float _spawnMin = 0.3f;       // мин/макс пауза между подспавнами
-        [SerializeField] private float _spawnMax = 0.9f;
-        [SerializeField] private int _spawnGroupMax = 4;       // база группы (растёт к концу уровня)
+        [SerializeField] private float _spawnMin = 0.2f;       // мин/макс пауза между подспавнами (плотнее)
+        [SerializeField] private float _spawnMax = 0.55f;
+        [SerializeField] private int _spawnGroupMax = 7;       // база группы (растёт со временем)
         [SerializeField] private float _spawnDistance = 45f;
         [SerializeField] private float _laneHalfWidth = 6f;
 
         [Header("Кривая сложности")]
-        [SerializeField] private float _levelGrowth = 1.85f;   // геометрический рост между уровнями
-        [SerializeField] private float _inLevelRamp = 1.6f;    // рост сложности к концу уровня (1 + progress*ramp)
-        [SerializeField] private int _miniBossCount = 3;       // промежуточных боссов за уровень
+        [SerializeField] private float _levelGrowth = 1.85f;    // геометрический рост между уровнями
+        [SerializeField] private float _rampStepTime = 12f;     // каждые N секунд внутри уровня — усиление
+        [SerializeField] private float _rampStepFactor = 0.45f; // +45% к силе мобов за каждый шаг времени
+        [SerializeField] private int _miniBossCount = 3;        // промежуточных боссов за уровень
 
         [Header("Орда")]
-        [SerializeField] private float _crowdHpPerUnit = 4f;
-        [SerializeField] private float _enemySpeed = 2.6f;
+        [SerializeField] private float _crowdHpPerUnit = 7f;    // толще — выживают под огнём и копятся
+        [SerializeField] private float _enemySpeed = 3.1f;      // быстрее добегают до отряда
         [SerializeField] private float _enemyStop = 2.2f;
         [SerializeField] private float _enemyHomingDist = 6f;
-        [SerializeField] private int _enemyContactDamage = 1;
-        [SerializeField] private float _enemyHitInterval = 1.5f;
+        [SerializeField] private int _enemyContactDamage = 2;   // больнее отъедают отряд
+        [SerializeField] private float _enemyHitInterval = 1.1f;
 
         [Header("Бонусы (боковые дорожки)")]
         [SerializeField] private float _sideLaneX = 9f;
@@ -53,16 +54,16 @@ namespace CrowdRunner
 
         private readonly List<EnemyController> _alive = new List<EnemyController>();
         private int _enemyTotal, _spawnedCount, _level, _miniBossesDone, _boosterIndex;
-        private float _spawnTimer, _boosterTimer;
+        private float _spawnTimer, _boosterTimer, _levelTime;
         private bool _boosterLeft, _bossSpawned, _bossDefeated, _running;
         private EnemyController _bigBoss;
 
         // Прогресс уровня = доля выпущенных врагов (а не пройденная дистанция).
         public float SpawnProgress01 => _enemyTotal > 0 ? Mathf.Clamp01((float)_spawnedCount / _enemyTotal) : 0f;
 
-        // Геометрический рост между уровнями и плавный рост к концу уровня.
+        // Геометрический рост между уровнями + ступенчатый рост ВО ВРЕМЕНИ внутри уровня.
         private float Diff => Mathf.Pow(_levelGrowth, Mathf.Max(0, _level - 1));
-        private float Ramp => 1f + SpawnProgress01 * _inLevelRamp;
+        private float Ramp => 1f + Mathf.Floor(_levelTime / Mathf.Max(1f, _rampStepTime)) * _rampStepFactor;
 
         private GameObject _enemyModel, _bossModel; // модели из пака (null = запечённая)
 
@@ -84,6 +85,7 @@ namespace CrowdRunner
             _spawnedCount = 0;
             _miniBossesDone = 0;
             _boosterIndex = 0;
+            _levelTime = 0f;
             _spawnTimer = 0.8f;
             _boosterTimer = 0.5f;
             _bossSpawned = _bossDefeated = false;
@@ -96,6 +98,8 @@ namespace CrowdRunner
             if (!_running || _squad == null) return;
             var gm = RunnerGameManager.Instance;
             if (gm == null || gm.Phase != GamePhase.Running) return;
+
+            _levelTime += Time.deltaTime; // время в уровне → ступенчатое усиление мобов
 
             // рандомный капельный поток врагов
             if (_spawnedCount < _enemyTotal)
