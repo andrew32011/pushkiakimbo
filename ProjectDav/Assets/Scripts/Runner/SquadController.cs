@@ -43,9 +43,7 @@ namespace CrowdRunner
         // баллистика по типу оружия
         private float _dmgMul;
         private Color _projColor = Color.white;
-
-        // параметры луча (hitscan) по типу оружия — настраиваются в SetWeapon (позже вынесем в пак/SO)
-        private float _range = 60f, _tracerWidth = 0.12f, _tracerLife = 0.05f;
+        private float _bulletSpeed = 30f, _bulletLife = 2f, _bulletScale = 0.25f;
 
         public int UnitCount => _units.Count;
         public float Damage => _baseDamage * _dmgMul;
@@ -111,8 +109,6 @@ namespace CrowdRunner
             if (_fireTimer <= 0f) { _fireTimer = _fireInterval; Fire(); }
         }
 
-        private static readonly RaycastHit[] _rayHits = new RaycastHit[16];
-
         private void Fire()
         {
             if (_units.Count == 0) return;
@@ -126,46 +122,11 @@ namespace CrowdRunner
                 for (int v = 0; v < _volley; v++)
                 {
                     float offset = (_volley == 1) ? 0f : (v - (_volley - 1) * 0.5f) * 0.2f;
-                    FireHitscan(baseMuzzle + Vector3.right * offset);
+                    BulletManager.Instance?.Spawn(baseMuzzle + Vector3.right * offset, _bulletSpeed, Damage, _bulletLife, _projColor, _bulletScale);
                     any = true;
                 }
             }
             if (any) AudioController.Instance?.PlayShot();
-        }
-
-        // Луч вперёд: бьём ближайшую цель (без пробивания), стена гасит, рисуем трассер.
-        private void FireHitscan(Vector3 origin)
-        {
-            Vector3 dir = Vector3.forward;
-            Vector3 end = origin + dir * _range;
-
-            int n = Physics.RaycastNonAlloc(origin, dir, _rayHits, _range, ~0, QueryTriggerInteraction.Collide);
-            int best = -1; float bestDist = float.MaxValue;
-            for (int h = 0; h < n; h++)
-            {
-                var col = _rayHits[h].collider;
-                if (col == null) continue;
-                if (col.GetComponentInParent<SquadController>() != null) continue; // не стреляем по себе
-                if (_rayHits[h].distance < bestDist) { bestDist = _rayHits[h].distance; best = h; }
-            }
-
-            if (best >= 0)
-            {
-                var hit = _rayHits[best];
-                end = hit.point;
-                if (hit.collider.GetComponentInParent<LaneWall>() == null) // об стену — только гасим
-                {
-                    var enemy = hit.collider.GetComponentInParent<EnemyController>();
-                    if (enemy != null && !enemy.IsDead) enemy.TakeDamage(Damage);
-                    else
-                    {
-                        var booster = hit.collider.GetComponentInParent<Booster>();
-                        if (booster != null && !booster.IsDead) booster.TakeDamage(Damage);
-                    }
-                }
-            }
-
-            TracerPool.Instance?.Spawn(origin, end, _projColor, _tracerWidth, _tracerLife);
         }
 
         // ---------- Изменение числа ----------
@@ -192,13 +153,13 @@ namespace CrowdRunner
             switch (weapon)
             {
                 case WeaponType.Melee:
-                    _dmgMul = 1f; _projColor = new Color(0.6f, 0.6f, 0.6f); _range = 16f; _tracerWidth = 0.16f; _tracerLife = 0.04f; break;
+                    _dmgMul = 1f; _projColor = new Color(0.6f, 0.6f, 0.6f); _bulletSpeed = 18f; _bulletLife = 1.0f; _bulletScale = 0.28f; break;
                 case WeaponType.Bow:
-                    _dmgMul = 1.6f; _projColor = new Color(0.85f, 0.75f, 0.45f); _range = 45f; _tracerWidth = 0.10f; _tracerLife = 0.05f; break;
+                    _dmgMul = 1.6f; _projColor = new Color(0.85f, 0.75f, 0.45f); _bulletSpeed = 26f; _bulletLife = 2.0f; _bulletScale = 0.18f; break;
                 case WeaponType.Musket:
-                    _dmgMul = 2.6f; _projColor = new Color(0.7f, 0.75f, 0.85f); _range = 65f; _tracerWidth = 0.16f; _tracerLife = 0.05f; break;
+                    _dmgMul = 2.6f; _projColor = new Color(0.7f, 0.75f, 0.85f); _bulletSpeed = 34f; _bulletLife = 2.2f; _bulletScale = 0.22f; break;
                 case WeaponType.Rifle:
-                    _dmgMul = 4f; _projColor = new Color(1f, 0.85f, 0.2f); _range = 95f; _tracerWidth = 0.10f; _tracerLife = 0.06f; break;
+                    _dmgMul = 4f; _projColor = new Color(1f, 0.85f, 0.2f); _bulletSpeed = 44f; _bulletLife = 2.6f; _bulletScale = 0.16f; break;
             }
             EquipWeaponModels();
             RunnerGameManager.Instance?.RefreshHud();
