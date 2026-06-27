@@ -16,19 +16,20 @@ namespace CrowdRunner
         [Header("Refs")]
         [SerializeField] private Transform _squad;
 
-        [Header("Волны врагов")]
-        [SerializeField] private int _wavesBase = 14;         // число волн (растёт с уровнем)
-        [SerializeField] private float _waveInterval = 3.5f;  // пауза между волнами
-        [SerializeField] private float _spawnDistance = 45f;  // где появляются враги/бонусы впереди
-        [SerializeField] private float _laneHalfWidth = 4f;   // ширина центральной дорожки
-        [SerializeField] private float _unitSpacing = 0.9f;
+        [Header("Поток врагов (рандомный)")]
+        [SerializeField] private int _enemyTotalBase = 50;     // всего врагов за уровень
+        [SerializeField] private int _enemyTotalPerLevel = 20;
+        [SerializeField] private float _spawnMin = 0.35f;      // мин/макс пауза между подспавнами
+        [SerializeField] private float _spawnMax = 1.1f;
+        [SerializeField] private int _spawnGroupMax = 4;       // сколько врагов за один подспавн
+        [SerializeField] private float _spawnDistance = 45f;   // где появляются впереди
+        [SerializeField] private float _laneHalfWidth = 4f;    // ширина центральной дорожки
 
         [Header("Орда")]
         [SerializeField] private float _crowdHpPerUnit = 4f;
-        [SerializeField] private int _crowdBase = 18;
-        [SerializeField] private int _crowdMaxPerWave = 45;
         [SerializeField] private float _enemySpeed = 2.6f;
         [SerializeField] private float _enemyStop = 2.2f;        // встаёт перед отрядом
+        [SerializeField] private float _enemyHomingDist = 6f;    // с какой дистанции наводится на отряд
         [SerializeField] private int _enemyContactDamage = 1;
         [SerializeField] private float _enemyHitInterval = 1.5f;
 
@@ -46,22 +47,22 @@ namespace CrowdRunner
         [SerializeField] private Color _bossColor = new Color(0.55f, 0.15f, 0.6f);
 
         private readonly List<EnemyController> _alive = new List<EnemyController>();
-        private int _waveTotal, _waveIndex, _level;
-        private float _waveTimer, _boosterTimer;
-        private bool _boosterLeft, _bossSpawned, _bossDefeated, _running;
+        private int _enemyTotal, _spawnedCount, _level;
+        private float _spawnTimer, _boosterTimer;
+        private bool _boosterLeft, _miniBossDone, _bossSpawned, _bossDefeated, _running;
         private EnemyController _bigBoss;
 
-        public float Progress01 => _waveTotal > 0 ? Mathf.Clamp01((float)_waveIndex / _waveTotal) : 0f;
+        public float Progress01 => _enemyTotal > 0 ? Mathf.Clamp01((float)_spawnedCount / _enemyTotal) : 0f;
 
         public void BeginLevel(int level)
         {
             _level = Mathf.Max(1, level);
             ClearAllEnemies();
-            _waveTotal = _wavesBase + _level * 3;
-            _waveIndex = 0;
-            _waveTimer = 1.0f;   // первая волна почти сразу
+            _enemyTotal = _enemyTotalBase + _level * _enemyTotalPerLevel;
+            _spawnedCount = 0;
+            _spawnTimer = 0.8f;
             _boosterTimer = 0.5f;
-            _bossSpawned = _bossDefeated = false;
+            _miniBossDone = _bossSpawned = _bossDefeated = false;
             _bigBoss = null;
             _running = true;
         }
@@ -72,16 +73,15 @@ namespace CrowdRunner
             var gm = RunnerGameManager.Instance;
             if (gm == null || gm.Phase != GamePhase.Running) return;
 
-            // волны орд по таймеру
-            if (_waveIndex < _waveTotal)
+            // рандомный капельный поток врагов
+            if (_spawnedCount < _enemyTotal)
             {
-                _waveTimer -= Time.deltaTime;
-                if (_waveTimer <= 0f)
+                _spawnTimer -= Time.deltaTime;
+                if (_spawnTimer <= 0f)
                 {
-                    _waveTimer = _waveInterval;
-                    if (_waveIndex == _waveTotal / 2) SpawnBoss(false);
-                    else SpawnCrowd();
-                    _waveIndex++;
+                    _spawnTimer = Random.Range(_spawnMin, _spawnMax);
+                    SpawnTrickle();
+                    if (!_miniBossDone && _spawnedCount >= _enemyTotal / 2) { _miniBossDone = true; SpawnBoss(false); }
                 }
             }
             else if (!_bossSpawned)
@@ -99,7 +99,7 @@ namespace CrowdRunner
                 _boosterLeft = !_boosterLeft;
             }
 
-            bool allSpawned = _waveIndex >= _waveTotal && _bossSpawned;
+            bool allSpawned = _spawnedCount >= _enemyTotal && _bossSpawned;
             if (allSpawned && _bossDefeated && _alive.Count == 0)
             {
                 _running = false;
@@ -108,27 +108,21 @@ namespace CrowdRunner
             }
         }
 
-        // Орда заполняет всю центральную дорожку и движется на отряд.
-        private void SpawnCrowd()
+        // Рандомный подспавн небольшой группы врагов по всей ширине дорожки.
+        private void SpawnTrickle()
         {
             if (_enemyPrefab == null) return;
-            int count = Mathf.Clamp(_crowdBase + _level * 2 + Random.Range(0, 5 + _level), 4, _crowdMaxPerWave);
-            int perRow = Mathf.Max(1, Mathf.FloorToInt(_laneHalfWidth * 2f / _unitSpacing));
-            float baseZ = _squad.position.z + _spawnDistance;
-
-            for (int k = 0; k < count; k++)
+            int n = Mathf.Min(Random.Range(1, _spawnGroupMax + 1), _enemyTotal - _spawnedCount);
+            for (int k = 0; k < n; k++)
             {
-                int row = k / perRow;
-                int col = k % perRow;
-                int rowCount = Mathf.Min(perRow, count - row * perRow);
-                float x = (col - (rowCount - 1) * 0.5f) * _unitSpacing + Random.Range(-0.1f, 0.1f);
-                x = Mathf.Clamp(x, -_laneHalfWidth, _laneHalfWidth);
-                float z = baseZ + row * _unitSpacing + Random.Range(-0.2f, 0.2f);
+                float x = Random.Range(-_laneHalfWidth, _laneHalfWidth);
+                float z = _squad.position.z + _spawnDistance + Random.Range(-3f, 6f);
                 var e = Instantiate(_enemyPrefab, new Vector3(x, 0f, z), Quaternion.identity);
                 e.transform.localScale = Vector3.one;
                 e.InitCrowd(this, 1, 1 + _level, _enemySpeed, _crowdHpPerUnit,
-                            _enemyContactDamage, _enemyHitInterval, _enemyStop, _enemyColor);
+                            _enemyContactDamage, _enemyHitInterval, _enemyStop, _enemyHomingDist, _enemyColor);
                 _alive.Add(e);
+                _spawnedCount++;
             }
         }
 

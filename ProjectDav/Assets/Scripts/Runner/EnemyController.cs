@@ -24,6 +24,7 @@ namespace CrowdRunner
         private float _hitTimer;
         private bool _engaged;   // вступил в бой
         private float _stopDist = 1.5f; // на каком расстоянии перед отрядом встаёт
+        private float _homingDist = 999f; // с какой дистанции начинает наводиться на отряд по X
 
         public bool IsDead { get; private set; }
         public bool IsBoss => _isBoss;
@@ -31,7 +32,7 @@ namespace CrowdRunner
         public int Level => _level;
         public int CrowdCount => Mathf.Max(1, Mathf.CeilToInt(_hp / _hpPerUnit));
 
-        public void InitCrowd(LevelSpawner spawner, int count, int level, float speed, float hpPerUnit, int contactDamage, float hitInterval, float stopDist, Color tint)
+        public void InitCrowd(LevelSpawner spawner, int count, int level, float speed, float hpPerUnit, int contactDamage, float hitInterval, float stopDist, float homingDist, Color tint)
         {
             _spawner = spawner; _isBoss = false; _level = level; _speed = speed;
             _hpPerUnit = Mathf.Max(1f, hpPerUnit);
@@ -39,6 +40,7 @@ namespace CrowdRunner
             _contactDamage = Mathf.Max(1, contactDamage);
             _hitInterval = Mathf.Max(0.2f, hitInterval);
             _stopDist = stopDist;
+            _homingDist = homingDist;
             Tint(tint);
             if (_hpBarFill != null) _hpBarFill.gameObject.SetActive(false);
             if (_label != null) _label.gameObject.SetActive(count > 1); // у орды из одиночек цифру не показываем
@@ -49,7 +51,7 @@ namespace CrowdRunner
         {
             _spawner = spawner; _isBoss = true; _level = level; _speed = speed;
             _maxHp = _hp = hp; _bonusUnits = bonusUnits; _contactDamage = contactDamage; _hitInterval = hitInterval;
-            _stopDist = 1.2f;
+            _stopDist = 1.2f; _homingDist = 999f;
             Tint(tint);
             UpdateLabel();
             UpdateHpBar();
@@ -74,8 +76,9 @@ namespace CrowdRunner
             // движемся навстречу, но НЕ проходим мимо игрока — встаём на _stopDist перед ним
             float stopZ = squad != null ? squad.Center.z + _stopDist : float.NegativeInfinity;
             pos.z = Mathf.Max(pos.z - _speed * Time.deltaTime, stopZ);
-            // наведение по X пока не вступили в бой (чтобы орда не схлопывалась в точку)
-            if (squad != null && !_engaged)
+            // наведение по X включаем только вблизи (на линии блоков), и пока не в бою —
+            // чтобы орда не схлопывалась в точку издалека, а шла прямо по полосе
+            if (squad != null && !_engaged && (pos.z - squad.Center.z) <= _homingDist)
                 pos.x = Mathf.MoveTowards(pos.x, squad.Center.x, _homingSpeed * Time.deltaTime);
             transform.position = pos;
 
