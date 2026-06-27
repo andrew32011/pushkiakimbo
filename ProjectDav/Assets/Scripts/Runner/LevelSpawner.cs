@@ -26,14 +26,15 @@ namespace CrowdRunner
         [SerializeField] private float _laneHalfWidth = 6f;
 
         [Header("Кривая сложности")]
-        [SerializeField] private float _levelGrowth = 1.85f;    // геометрический рост между уровнями
-        [SerializeField] private float _rampStepTime = 12f;     // каждые N секунд внутри уровня — усиление
-        [SerializeField] private float _rampStepFactor = 0.45f; // +45% к силе мобов за каждый шаг времени
-        [SerializeField] private int _miniBossCount = 3;        // промежуточных боссов за уровень
+        [SerializeField] private float _levelGrowth = 1.85f;       // геометрический рост между уровнями
+        [SerializeField] private float _rampStepTime = 12f;        // период усиления во времени (сек)
+        [SerializeField] private float _hpRampStep = 1.6f;         // ×HP мобов за каждый шаг времени (ГЕОМЕТРИЧЕСКИ)
+        [SerializeField] private float _densityStepFactor = 0.25f; // +плотность спавна за шаг (линейно)
+        [SerializeField] private int _miniBossCount = 3;           // промежуточных боссов за уровень
 
         [Header("Орда")]
-        [SerializeField] private float _crowdHpPerUnit = 7f;    // толще — выживают под огнём и копятся
-        [SerializeField] private float _enemySpeed = 3.1f;      // быстрее добегают до отряда
+        [SerializeField] private float _crowdHpPerUnit = 12f;   // база HP моба (дальше растёт геометрически во времени)
+        [SerializeField] private float _enemySpeed = 3.1f;      // скорость приближения (не трогаем)
         [SerializeField] private float _enemyStop = 2.2f;
         [SerializeField] private float _enemyHomingDist = 6f;
         [SerializeField] private int _enemyContactDamage = 2;   // больнее отъедают отряд
@@ -61,9 +62,11 @@ namespace CrowdRunner
         // Прогресс уровня = доля выпущенных врагов (а не пройденная дистанция).
         public float SpawnProgress01 => _enemyTotal > 0 ? Mathf.Clamp01((float)_spawnedCount / _enemyTotal) : 0f;
 
-        // Геометрический рост между уровнями + ступенчатый рост ВО ВРЕМЕНИ внутри уровня.
+        // Геометрический рост между уровнями + рост ВО ВРЕМЕНИ внутри уровня.
         private float Diff => Mathf.Pow(_levelGrowth, Mathf.Max(0, _level - 1));
-        private float Ramp => 1f + Mathf.Floor(_levelTime / Mathf.Max(1f, _rampStepTime)) * _rampStepFactor;
+        private int RampSteps => Mathf.FloorToInt(_levelTime / Mathf.Max(1f, _rampStepTime));
+        private float HpRamp => Mathf.Pow(_hpRampStep, RampSteps);          // HP — геометрически во времени
+        private float DensityRamp => 1f + RampSteps * _densityStepFactor;  // плотность — линейно во времени
 
         private GameObject _enemyModel, _bossModel; // модели из пака (null = запечённая)
 
@@ -107,7 +110,7 @@ namespace CrowdRunner
                 _spawnTimer -= Time.deltaTime;
                 if (_spawnTimer <= 0f)
                 {
-                    _spawnTimer = Random.Range(_spawnMin, _spawnMax) / Ramp; // к концу уровня — чаще
+                    _spawnTimer = Random.Range(_spawnMin, _spawnMax) / DensityRamp; // со временем — чаще
                     SpawnTrickle();
                     // несколько промежуточных боссов за уровень, равномерно по волне
                     int threshold = (_miniBossesDone + 1) * _enemyTotal / (_miniBossCount + 1);
@@ -143,11 +146,11 @@ namespace CrowdRunner
         private void SpawnTrickle()
         {
             if (_enemyPrefab == null) return;
-            float diff = Diff, ramp = Ramp;
-            int groupMax = Mathf.Max(1, Mathf.RoundToInt(_spawnGroupMax * ramp)); // больше мобов к концу уровня
+            float diff = Diff, hpRamp = HpRamp, density = DensityRamp;
+            int groupMax = Mathf.Max(1, Mathf.RoundToInt(_spawnGroupMax * density)); // больше мобов со временем
             int n = Mathf.Min(Random.Range(1, groupMax + 1), _enemyTotal - _spawnedCount);
-            float hpPerUnit = _crowdHpPerUnit * diff * ramp;                       // выживаемость растёт
-            int contact = Mathf.Max(1, Mathf.RoundToInt(_enemyContactDamage * diff));
+            float hpPerUnit = _crowdHpPerUnit * diff * hpRamp;                       // HP — геометрически во времени
+            int contact = Mathf.Max(1, Mathf.RoundToInt(_enemyContactDamage * diff * (1f + RampSteps * 0.3f)));
             for (int k = 0; k < n; k++)
             {
                 float x = Random.Range(-_laneHalfWidth, _laneHalfWidth);
@@ -164,10 +167,9 @@ namespace CrowdRunner
         private void SpawnBoss(bool big)
         {
             if (_enemyPrefab == null) return;
-            float diff = Diff;
-            float hp = (big ? 420f : 150f) * diff * (big ? 1f : (1f + SpawnProgress01 * 0.5f));
+            float hp = (big ? 420f : 150f) * Diff * HpRamp; // боссы тоже тяжелеют во времени (геометрически)
             int bonus = big ? Random.Range(30, 51) : Random.Range(12, 22);
-            int contactDmg = Mathf.RoundToInt((big ? 6f : 4f) * diff) + _level;
+            int contactDmg = Mathf.RoundToInt((big ? 6f : 4f) * Diff) + _level;
             float z = _squad.position.z + _spawnDistance;
             var boss = Instantiate(_enemyPrefab, new Vector3(0f, 0f, z), Quaternion.identity);
             boss.transform.localScale = Vector3.one * (big ? 2.8f : 1.9f);
