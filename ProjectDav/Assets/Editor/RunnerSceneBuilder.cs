@@ -201,22 +201,22 @@ public static class RunnerSceneBuilder
     private static Booster BuildBoosterPrefab()
     {
         var root = new GameObject("Booster");
-        // статуя сбоку
-        var statue = GameObject.CreatePrimitive(PrimitiveType.Cube);
-        statue.name = "Statue"; statue.transform.SetParent(root.transform);
-        statue.transform.localScale = new Vector3(1f, 2.2f, 1f);
-        statue.transform.localPosition = new Vector3(0f, 1.1f, 0f);
-        Object.DestroyImmediate(statue.GetComponent<Collider>());
-        statue.GetComponent<Renderer>().sharedMaterial = SolidMat(new Color(0.5f, 0.85f, 0.6f));
+        // разрушаемый блок-бонус
+        var crate = GameObject.CreatePrimitive(PrimitiveType.Cube);
+        crate.name = "Crate"; crate.transform.SetParent(root.transform);
+        crate.transform.localScale = new Vector3(1.2f, 1.6f, 1.2f);
+        crate.transform.localPosition = new Vector3(0f, 0.8f, 0f);
+        Object.DestroyImmediate(crate.GetComponent<Collider>());
+        crate.GetComponent<Renderer>().sharedMaterial = SolidMat(new Color(0.5f, 0.85f, 0.6f));
 
-        // зона действия — большой триггер, дотягивается до дороги с любой стороны
+        // компактный триггер вокруг блока — ловит снаряды и касание отряда
         var zone = root.AddComponent<BoxCollider>();
         zone.isTrigger = true;
-        zone.center = new Vector3(0f, 1f, 0f);
-        zone.size = new Vector3(14f, 2f, 6f);
+        zone.center = new Vector3(0f, 0.8f, 0f);
+        zone.size = new Vector3(1.3f, 1.7f, 1.3f);
 
         var booster = root.AddComponent<Booster>();
-        var label = MakeTextMesh(root.transform, "+2", new Vector3(0f, 2.6f, 0f), 0.35f, new Color(0.5f, 1f, 0.6f));
+        var label = MakeTextMesh(root.transform, "+5", new Vector3(0f, 2.0f, 0f), 0.35f, new Color(0.5f, 1f, 0.6f));
         SetRef(booster, "_label", label.GetComponent<TextMesh>());
         SetRef(booster, "_zone", zone);
 

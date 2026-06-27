@@ -31,10 +31,21 @@ namespace CrowdRunner
         private void OnTriggerEnter(Collider other)
         {
             var enemy = other.GetComponentInParent<EnemyController>();
-            if (enemy == null || enemy.IsDead) return;
-            enemy.TakeDamage(_damage);
-            EffectsManager.Burst(transform.position, _color, 0.5f);
-            if (!_pierce) Destroy(gameObject);
+            if (enemy != null && !enemy.IsDead)
+            {
+                enemy.TakeDamage(_damage);
+                EffectsManager.Burst(transform.position, _color, 0.5f);
+                if (!_pierce) Destroy(gameObject);
+                return;
+            }
+
+            var booster = other.GetComponentInParent<Booster>();
+            if (booster != null && !booster.IsDead)
+            {
+                booster.TakeDamage(_damage);
+                EffectsManager.Burst(transform.position, _color, 0.5f);
+                if (!_pierce) Destroy(gameObject);
+            }
         }
     }
 }

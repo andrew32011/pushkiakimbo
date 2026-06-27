@@ -7,7 +7,7 @@ namespace CrowdRunner
     // толпы врагов, мини-босс в середине и большой босс в конце.
     public class LevelSpawner : MonoBehaviour
     {
-        private enum EvType { GatePair, Crowd, MiniBoss, BigBoss, WeaponPickup, Booster }
+        private enum EvType { GatePair, Crowd, MiniBoss, BigBoss, WeaponPickup, BoosterRow, Gift }
         private struct Ev { public float z; public EvType type; }
 
         [Header("Prefabs")]
@@ -27,9 +27,15 @@ namespace CrowdRunner
         [SerializeField] private float _sideX = 5.2f;
         [SerializeField] private float _spawnAhead = 40f;
 
+        [Header("Боковые бонусы (ряды)")]
+        [SerializeField] private float _edgeX = 3.3f;        // в пределах досягаемости отряда
+        [SerializeField] private float _boosterGap = 3.2f;   // расстояние между блоками в ряду
+        [SerializeField] private float _boosterHp = 6f;
+
         [Header("Difficulty")]
         [SerializeField] private float _crowdHpPerUnit = 4f;
         [SerializeField] private int _crowdBase = 8;
+        [SerializeField] private int _crowdMaxPerWave = 28;
         [SerializeField] private float _enemySpeed = 3.5f;
 
         [Header("Colors")]
@@ -75,8 +81,11 @@ namespace CrowdRunner
                 else t = (i % 2 == 0) ? EvType.GatePair : EvType.Crowd;
                 _events.Add(new Ev { z = z, type = t });
 
-                // боковые бустеры периодически (параллельно, не занимают слот пути)
-                if (i % 5 == 2) _events.Add(new Ev { z = z + _segment * 0.4f, type = EvType.Booster });
+                // ряды боковых бонусов вдоль края (периодически)
+                if (i > 2 && i % 6 == 0) _events.Add(new Ev { z = z + _segment * 0.3f, type = EvType.BoosterRow });
+
+                // редкий подарок на главной дороге
+                if (i > 4 && i % 17 == 0) _events.Add(new Ev { z = z + _segment * 0.5f, type = EvType.Gift });
 
                 z += _segment;
             }
@@ -115,7 +124,8 @@ namespace CrowdRunner
                 case EvType.WeaponPickup: SpawnWeaponPickup(ev.z); break;
                 case EvType.MiniBoss: SpawnBoss(ev.z, false); break;
                 case EvType.BigBoss: SpawnBoss(ev.z, true); break;
-                case EvType.Booster: SpawnBoosterAndGift(ev.z); break;
+                case EvType.BoosterRow: SpawnBoosterRow(ev.z); break;
+                case EvType.Gift: SpawnGift(ev.z); break;
             }
         }
 
@@ -155,12 +165,23 @@ namespace CrowdRunner
         private void SpawnCrowd(float z)
         {
             if (_enemyPrefab == null) return;
-            int count = _crowdBase + _level * 3 + Random.Range(0, 6 + _level);
-            float x = Random.Range(-1f, 1f);
-            var e = Instantiate(_enemyPrefab, new Vector3(x, 0f, z), Quaternion.identity);
-            e.transform.localScale = Vector3.one;
-            e.InitCrowd(this, count, 1 + _level, _enemySpeed, _crowdHpPerUnit, _enemyColor);
-            _alive.Add(e);
+            int count = _crowdBase + _level * 2 + Random.Range(0, 5 + _level);
+            count = Mathf.Clamp(count, 4, _crowdMaxPerWave);
+
+            // Орда: множество отдельных врагов рядами поперёк дороги, каждый = 1 юнит.
+            const int perRow = 5;
+            for (int i = 0; i < count; i++)
+            {
+                int row = i / perRow;
+                int col = i % perRow;
+                int rowCount = Mathf.Min(perRow, count - row * perRow);
+                float x = (col - (rowCount - 1) * 0.5f) * 0.9f + Random.Range(-0.12f, 0.12f);
+                float ez = z + row * 1.1f + Random.Range(-0.2f, 0.2f);
+                var e = Instantiate(_enemyPrefab, new Vector3(x, 0f, ez), Quaternion.identity);
+                e.transform.localScale = Vector3.one;
+                e.InitCrowd(this, 1, 1 + _level, _enemySpeed, _crowdHpPerUnit, _enemyColor);
+                _alive.Add(e);
+            }
         }
 
         private void SpawnBoss(float z, bool big)
@@ -176,20 +197,26 @@ namespace CrowdRunner
             if (big) _bigBoss = boss;
         }
 
-        private void SpawnBoosterAndGift(float z)
+        // Ряд боковых бонусов вдоль одного края, выстроенных друг за другом.
+        private void SpawnBoosterRow(float z)
         {
-            bool leftSide = Random.value < 0.5f;
-            if (_boosterPrefab != null)
+            if (_boosterPrefab == null) return;
+            float x = (Random.value < 0.5f) ? -_edgeX : _edgeX;
+            int n = Random.Range(3, 6);
+            float hp = _boosterHp + _level * 1.5f;
+            for (int i = 0; i < n; i++)
             {
-                var b = Instantiate(_boosterPrefab, new Vector3(leftSide ? -_sideX : _sideX, 0f, z), Quaternion.identity);
-                b.Init(Random.Range(2, 6), 0.5f);
+                var b = Instantiate(_boosterPrefab, new Vector3(x, 0f, z + i * _boosterGap), Quaternion.identity);
+                b.Init(Random.Range(3, 8), hp);
             }
-            // иногда подарок на противоположном краю
-            if (_giftPrefab != null && Random.value < 0.5f)
-            {
-                var g = Instantiate(_giftPrefab, new Vector3(leftSide ? _laneX + 1f : -_laneX - 1f, 0.4f, z + 4f), Quaternion.identity);
-                g.Init(10, 30);
-            }
+        }
+
+        private void SpawnGift(float z)
+        {
+            if (_giftPrefab == null) return;
+            float x = (Random.value < 0.5f) ? -_laneX : _laneX;
+            var g = Instantiate(_giftPrefab, new Vector3(x, 0.4f, z), Quaternion.identity);
+            g.Init(10, 30);
         }
 
         public void NotifyEnemyRemoved(EnemyController e)

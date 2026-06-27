@@ -37,6 +37,7 @@ namespace CrowdRunner
             _maxHp = _hp = count * _hpPerUnit;
             Tint(tint);
             if (_hpBarFill != null) _hpBarFill.gameObject.SetActive(false);
+            if (_label != null) _label.gameObject.SetActive(count > 1); // у орды из одиночек цифру не показываем
             UpdateLabel();
         }
 
